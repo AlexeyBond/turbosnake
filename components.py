@@ -1,5 +1,6 @@
 import queue
 from collections import OrderedDict, Counter, Iterable
+from typing import Optional
 
 from render_context import get_render_context, render_context_manager, enter_render_context
 
@@ -8,8 +9,9 @@ class Tree:
     def __init__(self):
         self.__update_queue = queue.SimpleQueue()
         self.__update_processing_scheduled = False
+        self.__root: Optional[Component] = None
 
-    def enqueue_update(self, component):
+    def enqueue_update_component(self, component):
         self.__update_queue.put(component)
         if not self.__update_processing_scheduled:
             self.schedule_task(self.__process_updates)
@@ -27,32 +29,58 @@ class Tree:
     def schedule_task(self, callback):
         raise NotImplemented
 
+    @property
+    def tree(self):
+        return self
+
+    @property
+    def root(self):
+        return self.__root
+
+    def __enter__(self):
+        assert not hasattr(self, '__restore_context')
+
+        self.__restore_context = enter_render_context(ComponentRenderingContext.CONTEXT_ID, SingletonComponentRenderContext())
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        ctx: SingletonComponentRenderContext = self.__restore_context()
+        del self.__restore_context
+
+        if exc_type:
+            return
+
+        if self.__root:
+            old_root = self.__root
+            self.__root = None
+            old_root.unmount()
+
+        new_root = ctx.get_component()
+        new_root.mount(self)
+        self.__root = new_root
+
 
 class Component:
     def __init__(self, key=None, **props):
         self.props = props
-
-        collection_builder: ComponentCollectionBuilder = get_render_context(ComponentCollectionBuilder)
-
-        assert collection_builder, 'Components must be created inside a proper rendering context'
-
-        if key is None:
-            key = collection_builder.get_default_key(prefix=self.__class__)
-
         self.key = key
 
-        self.insert(collection_builder)
+        self.insert()
 
-    def insert(self, builder: 'ComponentCollectionBuilder' = None):
-        assert not getattr(self, 'tree', None), 'Attempt to render a mounted component'
+    def insert(self, context: 'ComponentRenderingContext' = None):
+        assert not self.is_mounted(), 'Attempt to render a mounted component'
 
-        (builder or get_render_context(ComponentCollectionBuilder)).append(self)
+        if not context:
+            context = get_render_context(ComponentRenderingContext.CONTEXT_ID)
+
+            assert context, 'Attempt to render component outside of a rendering context'
+
+        context.append(self)
 
     def mount(self, parent):
-        assert not getattr(self, 'tree', None), 'Attempt to mount a mounted component'
+        assert not self.is_mounted(), 'Attempt to mount a mounted component'
 
         self.parent: Component = parent
-        self.tree: Tree = parent.tree
+        self.__tree: Tree = parent.tree
         self.__state = {}
         self.__update_enqueued = False
         self.prev_props = self.props
@@ -61,14 +89,19 @@ class Component:
 
     def unmount(self):
         del self.parent
-        del self.tree
+        del self.__tree
 
     def enqueue_update(self):
         if not self.__update_enqueued:
-            self.tree.enqueue_update(self)
+            self.__tree.enqueue_update_component(self)
             self.__update_enqueued = True
 
     def update_props_from(self, other: 'Component') -> bool:
+        """Updates `props` of this component with props of another component.
+
+        :param other:   the component to take props from
+        :return:        `True` iff properties of this component have changed and it should be updated
+        """
         if other.props == self.props:
             return False
 
@@ -108,6 +141,17 @@ class Component:
         """Iterator over all mounted children of this component"""
         yield from ()
 
+    @property
+    def tree(self):
+        return self.__tree
+
+    def class_id(self):
+        return self.__class__
+
+    def is_mounted(self):
+        # TODO: Not the most reliable (?) way to check if a protected attribute exists.
+        return hasattr(self, '_Component__tree')
+
 
 class ComponentsCollection(list):
     def __eq__(self, other):
@@ -126,24 +170,59 @@ class ComponentsCollection(list):
         return True
 
 
-class ComponentCollectionBuilder:
+class ComponentRenderingContext:
+    CONTEXT_ID = 'ComponentRenderingContext'
+
+    def append(self, component: Component):
+        raise NotImplemented
+
+    def extend(self, components: Iterable[Component]):
+        raise NotImplemented
+
+
+class ComponentCollectionBuilder(ComponentRenderingContext):
     def __init__(self):
         self.__collection = ComponentsCollection()
         self.__incremental_key = Counter()
 
     def append(self, component):
         # assert isinstance(component, Component)
-        self.__collection.append(component)
+        self.__collection.append(self._assign_default_key(component))
 
     def extend(self, components):
-        self.__collection.extend(components)
+        self.__collection.extend(map(self._assign_default_key, components))
 
-    def get_default_key(self, prefix=None):
-        self.__incremental_key[prefix] += 1
-        return prefix, self.__incremental_key[prefix]
+    def _assign_default_key(self, component):
+        if not component.key:
+            prefix = component.class_id()
+            self.__incremental_key[prefix] += 1
+            component.key = (prefix, self.__incremental_key[prefix])
+
+        return component
 
     def build(self):
         return self.__collection
+
+
+class SingletonComponentRenderContext(ComponentRenderingContext):
+    def __init__(self):
+        self.__component = None
+
+    def append(self, component: Component):
+        if self.__component:
+            raise Exception('Only one component is allowed in this context')
+
+        self.__component = component
+
+    def extend(self, components: Iterable[Component]):
+        for component in components:
+            self.append(component)
+
+    def get_component(self) -> Component:
+        if not self.__component:
+            raise Exception('No components rendered')
+
+        return self.__component
 
 
 class MountedComponentsCollection:
@@ -160,7 +239,7 @@ class MountedComponentsCollection:
         return component.__class__ is new_component.__class__
 
     def __iter__(self) -> Iterable[Component]:
-        return self.components.values()
+        return iter(self.components.values())
 
     def update(self, components: list['Component']):
         old_components = self.components
@@ -210,18 +289,23 @@ class DynamicComponent(Component):
         del self.__mounted_children
 
     def mounted_children(self):
-        yield from self.__mounted_children
+        if self.is_mounted():
+            yield from self.__mounted_children
 
     def render(self):
         raise NotImplemented
 
-    def update(self):
+    def render_children(self) -> ComponentsCollection:
+        # TODO: Not the best name?
         builder = ComponentCollectionBuilder()
 
-        with render_context_manager(ComponentCollectionBuilder, builder):
+        with render_context_manager(ComponentRenderingContext.CONTEXT_ID, builder):
             self.render()
 
-        self.__mounted_children.update(builder.build())
+        return builder.build()
+
+    def update(self):
+        self.__mounted_children.update(self.render_children())
 
         super().update()
 
@@ -235,9 +319,24 @@ class ParentComponent(Component):
     def __enter__(self):
         assert not hasattr(self, '__restore_context')
 
-        self.__restore_context = enter_render_context(ComponentCollectionBuilder, ComponentCollectionBuilder())
+        self.__restore_context = enter_render_context(ComponentRenderingContext.CONTEXT_ID, ComponentCollectionBuilder())
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         builder = self.__restore_context()
         del self.__restore_context
         self.props['children'] = builder.build()
+
+
+class Fragment(DynamicComponent, ParentComponent):
+    def render_children(self) -> ComponentsCollection:
+        return self.props.get('children', ComponentsCollection())
+
+    def update_props_from(self, other: 'Component') -> bool:
+        if other.props.get('children', None) != self.props.get('children', None):
+            self.props = other.props
+            return True
+
+        return False
+
+    def props_equal_to(self, other: 'Component') -> bool:
+        return self.props.get('children', None) == other.props.get('children', None)

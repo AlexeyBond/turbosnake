@@ -4,11 +4,11 @@ import threading
 _tl = threading.local()
 
 
-def get_render_context(name):
+def get_render_context(name: str):
     return getattr(_tl, name, None)
 
 
-def enter_render_context(name, value):
+def enter_render_context(name: str, value):
     """Sets and restores a render context variable.
 
     restore = enter_render_context('x', myCtx)
@@ -38,7 +38,7 @@ def enter_render_context(name, value):
 
 
 @contextmanager
-def render_context_manager(name, value):
+def render_context_manager(name: str, value):
     """Wrapper for `enter_render_context` to use it with `with`
 
     :param name: context name
