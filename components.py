@@ -27,7 +27,7 @@ class Tree:
             pass
 
     def schedule_task(self, callback):
-        raise NotImplemented
+        raise NotImplementedError()
 
     @property
     def tree(self):
@@ -174,10 +174,10 @@ class ComponentRenderingContext:
     CONTEXT_ID = 'ComponentRenderingContext'
 
     def append(self, component: Component):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def extend(self, components: Iterable[Component]):
-        raise NotImplemented
+        raise NotImplementedError()
 
 
 class ComponentCollectionBuilder(ComponentRenderingContext):
@@ -293,7 +293,7 @@ class DynamicComponent(Component):
             yield from self.__mounted_children
 
     def render(self):
-        raise NotImplemented
+        raise NotImplementedError()
 
     def render_children(self) -> ComponentsCollection:
         # TODO: Not the best name?
@@ -328,6 +328,9 @@ class ParentComponent(Component):
 
 
 class Fragment(DynamicComponent, ParentComponent):
+    def render(self):
+        pass
+
     def render_children(self) -> ComponentsCollection:
         return self.props.get('children', ComponentsCollection())
 
