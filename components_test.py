@@ -32,8 +32,6 @@ class ComponentTest(TreeTestCase):
                 with Fragment():
                     Fragment()
 
-        self.tree.run_tasks()
-
         self.assertTreeMatchesSnapshot()
 
     def test_re_render_on_state_change(self):

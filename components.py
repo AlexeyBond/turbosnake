@@ -169,6 +169,10 @@ class ComponentsCollection(list):
 
         return True
 
+    def __call__(self):
+        """Creates a `Fragment` containing all components from this collection."""
+        return Fragment(children=self)
+
 
 class ComponentRenderingContext:
     CONTEXT_ID = 'ComponentRenderingContext'

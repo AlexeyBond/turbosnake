@@ -57,5 +57,8 @@ class TreeTestCase(SnapshotTestCase):
         SnapshotTestCase.setUp(self)
         self.tree = TestTree()
 
-    def assertTreeMatchesSnapshot(self, **kwargs):
+    def assertTreeMatchesSnapshot(self, run_tasks=True, **kwargs):
+        if run_tasks:
+            self.tree.run_tasks()
+
         self.assertMatchSnapshot(self.tree.root, **kwargs)
