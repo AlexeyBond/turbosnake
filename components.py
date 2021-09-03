@@ -135,9 +135,12 @@ class Component:
             return default
 
     def set_state(self, key, value):
-        cur = self.get_state(key)
-        if cur == value:
-            return
+        try:
+            cur = self.get_state(key)
+            if cur == value:
+                return
+        except KeyError:
+            pass  # ok, state isn't even initialized
         self.__state[key] = value
         self.enqueue_update()
 
