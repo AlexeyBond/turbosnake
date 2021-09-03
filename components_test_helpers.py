@@ -17,7 +17,7 @@ class TestTree(Tree):
             self.__callbacks.pop(0)()
 
 
-class ComponentsSnapshotFormatter(BaseSnapshotFormatter):
+class ComponentSnapshotFormatter(BaseSnapshotFormatter):
     def can_format(self, value):
         return isinstance(value, Component)
 
@@ -34,7 +34,7 @@ class ComponentsSnapshotFormatter(BaseSnapshotFormatter):
         })
 
 
-class ComponentCollectionFormatter(BaseSnapshotFormatter):
+class ComponentsCollectionSnapshotFormatter(BaseSnapshotFormatter):
     def can_format(self, value):
         return isinstance(value, ComponentsCollection)
 
@@ -48,8 +48,8 @@ class ComponentCollectionFormatter(BaseSnapshotFormatter):
         })
 
 
-Formatter.formatters.insert(0, ComponentsSnapshotFormatter())
-Formatter.formatters.insert(0, ComponentCollectionFormatter())
+Formatter.formatters.insert(0, ComponentSnapshotFormatter())
+Formatter.formatters.insert(0, ComponentsCollectionSnapshotFormatter())
 
 
 class TreeTestCase(SnapshotTestCase):

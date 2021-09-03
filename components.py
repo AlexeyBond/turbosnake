@@ -7,6 +7,7 @@ from render_context import get_render_context, render_context_manager, enter_ren
 
 class Tree:
     def __init__(self):
+        super().__init__()
         self.__update_queue = queue.SimpleQueue()
         self.__update_processing_scheduled = False
         self.__root: Optional[Component] = None
@@ -14,20 +15,27 @@ class Tree:
     def enqueue_update_component(self, component):
         self.__update_queue.put(component)
         if not self.__update_processing_scheduled:
-            self.schedule_task(self.__process_updates)
+            self.schedule_task(self.process_updates)
             self.__update_processing_scheduled = True
 
-    def __process_updates(self):
+    def process_updates(self):
         self.__update_processing_scheduled = False
 
         try:
             while True:
-                self.__update_queue.get_nowait().update()
+                component = self.__update_queue.get_nowait()
+                try:
+                    component.update()
+                except Exception as e:
+                    self.handle_update_error(e, component=component)
         except queue.Empty:
             pass
 
     def schedule_task(self, callback):
         raise NotImplementedError()
+
+    def handle_update_error(self, error: Exception, component: 'Component'):
+        raise error
 
     @property
     def tree(self):
@@ -40,7 +48,8 @@ class Tree:
     def __enter__(self):
         assert not hasattr(self, '__restore_context')
 
-        self.__restore_context = enter_render_context(ComponentRenderingContext.CONTEXT_ID, SingletonComponentRenderContext())
+        self.__restore_context = enter_render_context(ComponentRenderingContext.CONTEXT_ID,
+                                                      SingletonComponentRenderContext())
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         ctx: SingletonComponentRenderContext = self.__restore_context()
@@ -137,9 +146,37 @@ class Component:
             del self.__state[key]
             self.enqueue_update()
 
-    def mounted_children(self):
+    def mounted_children(self) -> Iterable['Component']:
         """Iterator over all mounted children of this component"""
         yield from ()
+
+    def first_matching_descendants(self, predicate):
+        """Iterator over all descendants of this component that match given predicate but don't have any other such
+        components between them and this component.
+        """
+        for child in self.mounted_children():
+            if predicate(child):
+                yield child
+            else:
+                yield from child.first_matching_descendants(predicate)
+
+    def ascendants(self):
+        asc = self.parent
+        tree = self.__tree
+
+        while asc is not tree:
+            yield asc
+            asc = asc.parent
+
+        yield asc
+
+    def first_matching_ascendant(self, predicate):
+        for asc in self.ascendants():
+            if predicate(asc):
+                return asc
+
+        # TODO: Add custom exception
+        raise Exception('No such ascendant')
 
     @property
     def tree(self):
@@ -172,6 +209,12 @@ class ComponentsCollection(list):
     def __call__(self):
         """Creates a `Fragment` containing all components from this collection."""
         return Fragment(children=self)
+
+    EMPTY: 'ComponentsCollection' = None
+
+
+# TODO: Make immutable
+ComponentsCollection.EMPTY = ComponentsCollection()
 
 
 class ComponentRenderingContext:
@@ -258,6 +301,7 @@ class MountedComponentsCollection:
                     if old_component.update_props_from(new_component):
                         old_component.enqueue_update()
                     new_components[key] = old_component
+                    del old_components[key]
                     continue
                 else:
                     old_component.unmount()
@@ -323,7 +367,8 @@ class ParentComponent(Component):
     def __enter__(self):
         assert not hasattr(self, '__restore_context')
 
-        self.__restore_context = enter_render_context(ComponentRenderingContext.CONTEXT_ID, ComponentCollectionBuilder())
+        self.__restore_context = enter_render_context(ComponentRenderingContext.CONTEXT_ID,
+                                                      ComponentCollectionBuilder())
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         builder = self.__restore_context()
@@ -336,7 +381,7 @@ class Fragment(DynamicComponent, ParentComponent):
         pass
 
     def render_children(self) -> ComponentsCollection:
-        return self.props.get('children', ComponentsCollection())
+        return self.props.get('children', ComponentsCollection.EMPTY)
 
     def update_props_from(self, other: 'Component') -> bool:
         if other.props.get('children', None) != self.props.get('children', None):
