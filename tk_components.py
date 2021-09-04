@@ -3,7 +3,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 import traceback
 from abc import abstractmethod, ABCMeta, ABC
-from collections import Generator
+from collections import Generator, Iterable
 from typing import Optional
 
 from components import Component, Tree, ParentComponent, DynamicComponent, ComponentsCollection
@@ -179,9 +179,22 @@ def event_prop_invoker(self, prop_name):
     return _event_prop_invoker
 
 
-def tk_with_events(event_map: dict[str, str]):
+def tk_with_events(event_map: Iterable[str, str]):
+    """Decorator for tk-component that invokes event handlers from it's props when tk's events happen.
+
+    @tk_with_events({
+        '<<Button-1>>': 'on_mouse_down',
+    })
+    class MyComponent(TkComponent):
+        ...
+
+    :param event_map iterable of pairs (event sequence - handler property name)
+    """
+
     def _tk_component_with_events(component):
-        original_create_widget = component
+        original_create_widget = component.create_widget
+
+        assert issubclass(component, TkComponent)
 
         def create_widget(self, *args, **kwargs):
             widget: tk.Widget = original_create_widget(self, *args, **kwargs)
@@ -242,5 +255,18 @@ class TkButton(TkComponent):
 class TkWindow(_PackContainerBase, TkFlatContainer, TkComponent):
     tk_ignore_subtree = True
 
+    def _on_close(self):
+        try:
+            event_handler = self.props['on_close']
+        except KeyError:
+            self.widget.destroy()
+            return
+
+        event_handler()
+
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
-        return tk.Toplevel(master=tk_parent)
+        widget = tk.Toplevel(master=tk_parent)
+
+        widget.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        return widget
