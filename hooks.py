@@ -178,3 +178,206 @@ def use_toggle(initial: bool = False):
         _ToggleHook,
         initial
     )
+
+
+class _PreviousHook(Hook):
+    def __init__(self, component):
+        super().__init__(component)
+        self.__component = component
+
+    def first_call(self, value, initial):
+        self.__value = value
+        return initial
+
+    def next_call(self, value, *_):
+        prev = self.__value
+        self.__value = value
+        return prev
+
+
+def use_previous(value, initial=None):
+    return ComponentHookProcessor.current().process_hook(
+        _PreviousHook,
+        value,
+        initial
+    )
+
+
+_sentinel = object()
+
+
+def use_function_hook(hook_class, arg_1=_sentinel, *args, **kwargs):
+    """Generic method for hooks that accept a function as one of arguments.
+
+    Resulting hook can be used as a plain function or as a decorator:
+
+    def use_my_hook(*args):
+        return use_function_hook(HookCls, *args)
+
+    ...
+    # The following two are equivalent:
+
+    use_my_hook(lambda x: ..., y, z)
+
+    # WARNING: the first argument here MUST NOT be a callable!
+    @use_my_hook(y, z)
+    def fn(x):
+        ...
+
+    # For cases without arguments
+
+    @use_my_hook
+    def fn0(x):
+        ...
+    """
+    ctx = ComponentHookProcessor.current()
+
+    if callable(arg_1):
+        return ctx.process_hook(hook_class, arg_1, *args, **kwargs)
+
+    def use_function_hook_decorator(fn):
+        assert callable(fn)
+
+        return ctx.process_hook(hook_class, fn, *(() if arg_1 is _sentinel else (arg_1,)), *args, **kwargs)
+
+    return use_function_hook_decorator
+
+
+class _MemoHook(Hook):
+    def first_call(self, fn, *dependencies):
+        self.__dependencies = dependencies
+        value = fn()
+        self.__value = value
+        return value
+
+    def next_call(self, fn, *dependencies):
+        if self.__dependencies == dependencies:
+            return self.__value
+        return self.first_call(fn, *dependencies)
+
+
+def use_memo(*args):
+    """Calls a function, memoizes last result and returns it on next calls as long as dependencies have not changed.
+
+    val = use_memo(lambda: ..., x, y)
+
+    # WARNING: first dependency MUST NOT be a callable
+    @use_memo(x, y)
+    def val():
+        ...
+
+    # Calls function once, always returns result of the first call
+    @use_memo
+    def val():
+        ...
+
+    :param args:
+    :return:
+    """
+    return use_function_hook(_MemoHook, *args)
+
+
+class _CallbackHook(Hook):
+    def first_call(self, fn, *dependencies):
+        self.__fn = fn
+        self.__dependencies = dependencies
+        return fn
+
+    def next_call(self, fn, *dependencies):
+        if self.__dependencies == dependencies:
+            return self.__fn
+        return self.first_call(fn, dependencies)
+
+
+def use_callback(*args):
+    """Hook that returns the same callable instance on consequent renders as long as it's dependencies do not change.
+
+    This helps to avoid extra re-renders of nested components when a callback is passed to them as property.
+
+    cb = use_callback(lambda x: ..., dep1, dep2)
+
+
+    @use_callback
+    def cb2(x):
+        ...
+
+    # WARNING: First dependency MUST NOT be a callable!
+    @use_callback(dep,dep1)
+    def cb3(x):
+        ...
+    """
+    return use_function_hook(_CallbackHook, *args)
+
+
+class _EffectHook(Hook):
+    def __init__(self, component: Component):
+        super().__init__(component)
+        self.__component = component
+        self.__next_effect = None
+        self.__revert_previous = None
+
+    def __do_revert_previous(self):
+        revert = self.__revert_previous
+        self.__revert_previous = None
+
+        if callable(revert):
+            revert()
+
+    def __execute_effect(self):
+        if not self.__next_effect:
+            return
+        self.__do_revert_previous()
+        self.__revert_previous = self.__next_effect()
+        self.__next_effect = None
+
+    def __enqueue_effect(self, effect):
+        if not self.__next_effect:
+            self.__component.tree.schedule_task(self.__execute_effect)
+        self.__next_effect = effect
+
+    def first_call(self, effect, *dependencies):
+        self.__dependencies = dependencies
+        self.__enqueue_effect(effect)
+
+    def next_call(self, effect, *dependencies):
+        if self.__dependencies == dependencies:
+            return
+
+        self.__dependencies = dependencies
+        self.__enqueue_effect(effect)
+
+    def on_unmount(self):
+        self.__component.tree.schedule_task(self.__revert_previous)
+
+
+def use_effect(*args):
+    """Executes a side-effect.
+
+    # Executes a lambda when any of dependencies changes since last render:
+    use_effect(lambda: ..., dep1, dep2)
+
+    # Or function:
+    # WARNING: First dependency MUST NOT be a callable!
+    @use_effect(dep1, dep2)
+    def do_something():
+        ...
+
+    # Executes a lambda once after first render
+    use_effect(lambda: ...)
+
+    # Or function:
+    @use_effect
+    def do_something():
+        ...
+
+    # Function may return another function that will be called before the effect is executed next time or after the
+    # component gets unmounted:
+    @use_effect
+    def foo():
+        def bar():
+            ...  # will be called after the component is unmounted
+        return bar
+
+    Note: effect functions and effect revert functions are not called immediately but are scheduled on tree's event loop
+    """
+    return use_function_hook(_EffectHook, *args)
