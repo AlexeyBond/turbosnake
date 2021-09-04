@@ -63,6 +63,12 @@ class _PackContainerBase(TkBase, ABC):
         self.schedule_repack()
 
 
+def _get_tk_children(component: Component):
+    for child in component.first_matching_descendants(TkComponent.__instancecheck__):
+        if not child.tk_ignore_subtree:
+            yield child
+
+
 class TkTree(Tree, _PackContainerBase, TkBase):
     def __init__(self, widget=None):
         super().__init__()
@@ -85,13 +91,15 @@ class TkTree(Tree, _PackContainerBase, TkBase):
         if isinstance(self.root, TkComponent):
             yield self.root
         else:
-            yield from self.root.first_matching_descendants(TkComponent.__instancecheck__)
+            yield from _get_tk_children(self.root)
 
     def main_loop(self):
         self.__widget.mainloop()
 
 
 class TkComponent(Component, TkBase):
+    tk_ignore_subtree: bool = False
+
     @property
     def widget(self) -> tk.Widget:
         return self.__widget
@@ -123,7 +131,7 @@ class TkComponent(Component, TkBase):
         return self.first_matching_ascendant(TkBase.__instancecheck__)
 
     def get_tk_children(self) -> Generator['TkComponent']:
-        return self.first_matching_descendants(TkBase.__instancecheck__)
+        return _get_tk_children(self)
 
     def _create_and_configure_widget(self):
         if self.__widget:
@@ -223,9 +231,16 @@ class TkButton(TkComponent):
             command=event_prop_invoker(self, 'on_click')
         )
 
-    def get_widget_config(self, text = '', **props):
+    def get_widget_config(self, text='', **props):
         cfg = super().get_widget_config(**props)
 
         cfg['text'] = text
 
         return cfg
+
+
+class TkWindow(_PackContainerBase, TkFlatContainer, TkComponent):
+    tk_ignore_subtree = True
+
+    def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
+        return tk.Toplevel(master=tk_parent)
