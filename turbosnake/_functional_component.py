@@ -1,8 +1,8 @@
 import inspect
 from typing import Optional
 
-from components import Component, ParentComponent, DynamicComponent
-from hooks import ComponentWithHooks
+from ._components import Component, ParentComponent, DynamicComponent
+from ._hooks import ComponentWithHooks
 
 
 def functional_component(

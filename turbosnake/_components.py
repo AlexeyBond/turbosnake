@@ -1,8 +1,14 @@
 import queue
+from abc import abstractmethod
 from collections import OrderedDict, Counter, Iterable
 from typing import Optional
 
-from render_context import get_render_context, render_context_manager, enter_render_context
+from ._render_context import get_render_context, render_context_manager, enter_render_context
+
+
+class Ref:
+    def __init__(self):
+        self.current = None
 
 
 class Tree:
@@ -46,7 +52,7 @@ class Tree:
         return self.__root
 
     def __enter__(self):
-        assert not hasattr(self, '__restore_context')
+        assert not hasattr(self, '_Tree__restore_context')
 
         self.__restore_context = enter_render_context(ComponentRenderingContext.CONTEXT_ID,
                                                       SingletonComponentRenderContext())
@@ -69,9 +75,10 @@ class Tree:
 
 
 class Component:
-    def __init__(self, key=None, **props):
+    def __init__(self, key=None, ref: Optional[Ref] = None, **props):
         self.props = props
         self.key = key
+        self.ref = ref
 
         self.insert()
 
@@ -192,6 +199,11 @@ class Component:
         # TODO: Not the most reliable (?) way to check if a protected attribute exists.
         return hasattr(self, '_Component__tree')
 
+    def assign_ref(self):
+        ref = self.ref
+        if ref:
+            ref.current = self
+
 
 class ComponentsCollection(list):
     def __eq__(self, other):
@@ -303,6 +315,8 @@ class MountedComponentsCollection:
                 if self.is_updatable(old_component, new_component):
                     if old_component.update_props_from(new_component):
                         old_component.enqueue_update()
+                    old_component.ref = new_component.ref
+                    old_component.assign_ref()
                     new_components[key] = old_component
                     del old_components[key]
                     continue
@@ -311,6 +325,7 @@ class MountedComponentsCollection:
                     del old_components[key]
 
             new_component.mount(self.parent)
+            new_component.assign_ref()
 
             new_components[key] = new_component
 
@@ -343,6 +358,7 @@ class DynamicComponent(Component):
         if self.is_mounted():
             yield from self.__mounted_children
 
+    @abstractmethod
     def render(self):
         raise NotImplementedError()
 
@@ -368,7 +384,7 @@ class ParentComponent(Component):
     """
 
     def __enter__(self):
-        assert not hasattr(self, '__restore_context')
+        assert not hasattr(self, '_ParentComponent__restore_context')
 
         self.__restore_context = enter_render_context(ComponentRenderingContext.CONTEXT_ID,
                                                       ComponentCollectionBuilder())

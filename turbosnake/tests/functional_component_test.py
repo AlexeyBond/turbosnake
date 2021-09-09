@@ -1,7 +1,5 @@
-from components import Component, ParentComponent, Fragment
-from components_test_helpers import TreeTestCase
-
-from functional_component import functional_component
+from turbosnake import Component, ParentComponent, Fragment, functional_component
+from turbosnake.test_helpers import TreeTestCase
 
 
 class FunctionalComponentTest(TreeTestCase):

@@ -6,7 +6,7 @@ from abc import abstractmethod, ABCMeta, ABC
 from collections import Generator, Iterable
 from typing import Optional
 
-from components import Component, Tree, ParentComponent, DynamicComponent, ComponentsCollection
+from turbosnake import Component, Tree, ParentComponent, DynamicComponent, ComponentsCollection
 
 
 class TkBase(metaclass=ABCMeta):
@@ -156,7 +156,7 @@ class TkComponent(Component, TkBase):
 
 
 def event_prop_invoker(self, prop_name):
-    # TODO: Move to components.py (?)
+    # TODO: Move to _components.py (?)
     """Creates a function that invokes event handler stored in given property of given component.
 
     Resulting function reads property on every invocation, so it remains valid after the property is changed.
@@ -252,6 +252,18 @@ class TkButton(TkComponent):
         return cfg
 
 
+class TkLabel(TkComponent):
+    def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
+        return ttk.Label(tk_parent)
+
+    def get_widget_config(self, text='', **props):
+        cfg = super().get_widget_config(**props)
+
+        cfg['text'] = text
+
+        return cfg
+
+
 class TkWindow(_PackContainerBase, TkFlatContainer, TkComponent):
     tk_ignore_subtree = True
 
@@ -270,3 +282,20 @@ class TkWindow(_PackContainerBase, TkFlatContainer, TkComponent):
         widget.protocol("WM_DELETE_WINDOW", self._on_close)
 
         return widget
+
+
+class TkEntry(TkComponent):
+    def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
+        widget = ttk.Entry(tk_parent)
+        widget.insert(0, self.props.get('initial_value', ''))
+        return widget
+
+    @property
+    def text(self):
+        return self.widget.get()
+
+    @text.setter
+    def text(self, value):
+        w: ttk.Entry = self.widget
+        w.delete(0, len(w.get()))
+        w.insert(value)

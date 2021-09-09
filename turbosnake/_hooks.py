@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod, ABC
 
-from components import Component, DynamicComponent, ComponentsCollection
-from render_context import enter_render_context, get_render_context
+from ._components import Component, DynamicComponent, ComponentsCollection, Ref
+from ._render_context import enter_render_context, get_render_context
 
 
 class Hook(metaclass=ABCMeta):
@@ -381,3 +381,16 @@ def use_effect(*args):
     Note: effect functions and effect revert functions are not called immediately but are scheduled on tree's event loop
     """
     return use_function_hook(_EffectHook, *args)
+
+
+class _RefHook(Hook, Ref):
+    def first_call(self):
+        return self
+
+    def next_call(self):
+        return self
+
+
+def use_ref() -> Ref:
+    """Returns the same unique `Ref` instance on every render."""
+    return ComponentHookProcessor.current().process_hook(_RefHook)

@@ -1,7 +1,8 @@
-from components import Tree, Component, ComponentsCollection
 from snapshottest import TestCase as SnapshotTestCase
-from snapshottest.formatters import BaseFormatter as BaseSnapshotFormatter
 from snapshottest.formatter import Formatter
+from snapshottest.formatters import BaseFormatter as BaseSnapshotFormatter
+
+from turbosnake import Tree, Component, ComponentsCollection
 
 
 class TestTree(Tree):

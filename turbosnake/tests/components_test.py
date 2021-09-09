@@ -1,5 +1,5 @@
-from components import Fragment, DynamicComponent, Component
-from components_test_helpers import TreeTestCase
+from turbosnake import Fragment, DynamicComponent, Component
+from turbosnake.test_helpers import TreeTestCase
 
 
 class ComponentTest(TreeTestCase):
