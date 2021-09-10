@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 from snapshottest import GenericRepr, Snapshot
 
-
 snapshots = Snapshot()
 
 snapshots['FunctionalComponentTest::test_render_children 1'] = {
@@ -12,11 +11,11 @@ snapshots['FunctionalComponentTest::test_render_children 1'] = {
     '__component__': True,
     'children': [
         {
-            '__class__': GenericRepr("<class 'components.Fragment'>"),
+            '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
             '__component__': True,
             'children': [
                 {
-                    '__class__': GenericRepr("<class 'components.Fragment'>"),
+                    '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
                     '__component__': True,
                     'children': [
                         {
@@ -33,12 +32,12 @@ snapshots['FunctionalComponentTest::test_render_children 1'] = {
                         }
                     ],
                     'key': (
-                        GenericRepr("<class 'components.Fragment'>"),
+                        GenericRepr("<class 'turbosnake._components.Fragment'>"),
                         1
                     ),
                     'props': {
                         'children': {
-                            '__class__': GenericRepr("<class 'components.ComponentsCollection'>"),
+                            '__class__': GenericRepr("<class 'turbosnake._components.ComponentsCollection'>"),
                             'items': [
                                 {
                                     '__class__': 'FunctionalComponent<child>',
@@ -58,15 +57,15 @@ snapshots['FunctionalComponentTest::test_render_children 1'] = {
                 }
             ],
             'key': (
-                GenericRepr("<class 'components.Fragment'>"),
+                GenericRepr("<class 'turbosnake._components.Fragment'>"),
                 1
             ),
             'props': {
                 'children': {
-                    '__class__': GenericRepr("<class 'components.ComponentsCollection'>"),
+                    '__class__': GenericRepr("<class 'turbosnake._components.ComponentsCollection'>"),
                     'items': [
                         {
-                            '__class__': GenericRepr("<class 'components.Fragment'>"),
+                            '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
                             '__component__': True,
                             'children': [
                                 {
@@ -83,12 +82,12 @@ snapshots['FunctionalComponentTest::test_render_children 1'] = {
                                 }
                             ],
                             'key': (
-                                GenericRepr("<class 'components.Fragment'>"),
+                                GenericRepr("<class 'turbosnake._components.Fragment'>"),
                                 1
                             ),
                             'props': {
                                 'children': {
-                                    '__class__': GenericRepr("<class 'components.ComponentsCollection'>"),
+                                    '__class__': GenericRepr("<class 'turbosnake._components.ComponentsCollection'>"),
                                     'items': [
                                         {
                                             '__class__': 'FunctionalComponent<child>',
@@ -114,7 +113,7 @@ snapshots['FunctionalComponentTest::test_render_children 1'] = {
     'key': None,
     'props': {
         'children': {
-            '__class__': GenericRepr("<class 'components.ComponentsCollection'>"),
+            '__class__': GenericRepr("<class 'turbosnake._components.ComponentsCollection'>"),
             'items': [
                 {
                     '__class__': 'FunctionalComponent<child>',

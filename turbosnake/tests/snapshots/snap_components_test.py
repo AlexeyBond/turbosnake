@@ -4,36 +4,35 @@ from __future__ import unicode_literals
 
 from snapshottest import GenericRepr, Snapshot
 
-
 snapshots = Snapshot()
 
 snapshots['ComponentTest::test_nested_fragments_snapshot 1'] = {
-    '__class__': GenericRepr("<class 'components.Fragment'>"),
+    '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
     '__component__': True,
     'children': [
         {
-            '__class__': GenericRepr("<class 'components.Fragment'>"),
+            '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
             '__component__': True,
             'children': [
             ],
             'key': (
-                GenericRepr("<class 'components.Fragment'>"),
+                GenericRepr("<class 'turbosnake._components.Fragment'>"),
                 1
             ),
             'props': {
             }
         },
         {
-            '__class__': GenericRepr("<class 'components.Fragment'>"),
+            '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
             '__component__': True,
             'children': [
                 {
-                    '__class__': GenericRepr("<class 'components.Fragment'>"),
+                    '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
                     '__component__': True,
                     'children': [
                     ],
                     'key': (
-                        GenericRepr("<class 'components.Fragment'>"),
+                        GenericRepr("<class 'turbosnake._components.Fragment'>"),
                         1
                     ),
                     'props': {
@@ -41,20 +40,20 @@ snapshots['ComponentTest::test_nested_fragments_snapshot 1'] = {
                 }
             ],
             'key': (
-                GenericRepr("<class 'components.Fragment'>"),
+                GenericRepr("<class 'turbosnake._components.Fragment'>"),
                 2
             ),
             'props': {
                 'children': {
-                    '__class__': GenericRepr("<class 'components.ComponentsCollection'>"),
+                    '__class__': GenericRepr("<class 'turbosnake._components.ComponentsCollection'>"),
                     'items': [
                         {
-                            '__class__': GenericRepr("<class 'components.Fragment'>"),
+                            '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
                             '__component__': True,
                             'children': [
                             ],
                             'key': (
-                                GenericRepr("<class 'components.Fragment'>"),
+                                GenericRepr("<class 'turbosnake._components.Fragment'>"),
                                 1
                             ),
                             'props': {
@@ -68,31 +67,31 @@ snapshots['ComponentTest::test_nested_fragments_snapshot 1'] = {
     'key': None,
     'props': {
         'children': {
-            '__class__': GenericRepr("<class 'components.ComponentsCollection'>"),
+            '__class__': GenericRepr("<class 'turbosnake._components.ComponentsCollection'>"),
             'items': [
                 {
-                    '__class__': GenericRepr("<class 'components.Fragment'>"),
+                    '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
                     '__component__': True,
                     'children': [
                     ],
                     'key': (
-                        GenericRepr("<class 'components.Fragment'>"),
+                        GenericRepr("<class 'turbosnake._components.Fragment'>"),
                         1
                     ),
                     'props': {
                     }
                 },
                 {
-                    '__class__': GenericRepr("<class 'components.Fragment'>"),
+                    '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
                     '__component__': True,
                     'children': [
                         {
-                            '__class__': GenericRepr("<class 'components.Fragment'>"),
+                            '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
                             '__component__': True,
                             'children': [
                             ],
                             'key': (
-                                GenericRepr("<class 'components.Fragment'>"),
+                                GenericRepr("<class 'turbosnake._components.Fragment'>"),
                                 1
                             ),
                             'props': {
@@ -100,20 +99,20 @@ snapshots['ComponentTest::test_nested_fragments_snapshot 1'] = {
                         }
                     ],
                     'key': (
-                        GenericRepr("<class 'components.Fragment'>"),
+                        GenericRepr("<class 'turbosnake._components.Fragment'>"),
                         2
                     ),
                     'props': {
                         'children': {
-                            '__class__': GenericRepr("<class 'components.ComponentsCollection'>"),
+                            '__class__': GenericRepr("<class 'turbosnake._components.ComponentsCollection'>"),
                             'items': [
                                 {
-                                    '__class__': GenericRepr("<class 'components.Fragment'>"),
+                                    '__class__': GenericRepr("<class 'turbosnake._components.Fragment'>"),
                                     '__component__': True,
                                     'children': [
                                     ],
                                     'key': (
-                                        GenericRepr("<class 'components.Fragment'>"),
+                                        GenericRepr("<class 'turbosnake._components.Fragment'>"),
                                         1
                                     ),
                                     'props': {
