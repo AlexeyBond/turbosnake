@@ -75,7 +75,7 @@ class Tree:
 
 
 class Component:
-    def __init__(self, key=None, ref: Optional[Ref] = None, **props):
+    def __init__(self, /, key=None, ref: Optional[Ref] = None, **props):
         self.props = props
         self.key = key
         self.ref = ref

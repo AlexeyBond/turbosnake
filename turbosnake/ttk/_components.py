@@ -40,8 +40,22 @@ class _PackContainerBase(TkBase, ABC):
 
         self.__repack_enqueued = False
 
+    @property
+    @abstractmethod
+    def layout_props(self):
+        ...
+
     def pack_child(self, child: 'TkComponent'):
-        child.widget.pack()
+        p = self.layout_props
+        cp = child.props
+        child.widget.pack(
+            side=cp.get('side', p.get('default_side', 'top')),
+            padx=cp.get('px', 0),
+            pady=cp.get('py', 0),
+            expand=cp.get('expand', False),
+            fill=cp.get('fill', None),
+            anchor=cp.get('anchor', None)
+        )
 
     def __repack_children(self):
         for child in self.get_tk_children():
@@ -69,11 +83,36 @@ def _get_tk_children(component: Component):
             yield child
 
 
+def configure_window(
+        widget,
+        title='turbosnake.ttk window',
+        resizable=True,
+        resizable_w=None,
+        resizable_h=None,
+        min_height=1,
+        min_width=1,
+        **_):
+    widget.wm_title(title)
+
+    resizable_tpl = (
+        1 if (resizable if resizable_w is None else resizable_w) else 0,
+        1 if (resizable if resizable_h is None else resizable_h) else 0
+    )
+    # Call of wm_resizable with arguments makes window blink, so don't do it when not necessary
+    if resizable_tpl != widget.wm_resizable():
+        widget.wm_resizable(*resizable_tpl)
+
+    widget.wm_minsize(min_width, min_height)
+
+
 class TkTree(Tree, _PackContainerBase, TkBase):
-    def __init__(self, widget=None):
+    def __init__(self, widget=None, **options):
         super().__init__()
 
         self.__widget = widget or tk.Tk()
+        configure_window(self.__widget, **options)
+
+    layout_props = {}
 
     def schedule_task(self, callback):
         self.__widget.after_idle(callback)
@@ -138,14 +177,17 @@ class TkComponent(Component, TkBase):
             self.__widget.destroy()
 
         widget = self.create_widget(self.tk_parent.widget)
-        widget.config(**self.get_widget_config(**self.props))
+        self.configure_widget(widget)
 
         self.__widget = widget
+
+    def configure_widget(self, widget):
+        widget.config(**self.get_widget_config(**self.props))
 
     def update(self):
         super().update()
 
-        self.__widget.config(**self.get_widget_config(**self.props))
+        self.configure_widget(self.__widget)
 
     @abstractmethod
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
@@ -220,15 +262,15 @@ class TkFlatContainer(TkComponent, ParentComponent, DynamicComponent, ABC):
 
 
 class TkPackedFrame(_PackContainerBase, TkFlatContainer):
+    @property
+    def layout_props(self):
+        return self.props
+
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
         return ttk.Frame(tk_parent)
 
     def get_widget_config(self, **props):
         return super().get_widget_config(**props)
-
-    def pack_child(self, child: 'TkComponent'):
-        # TODO: change parameters based on props of container/child
-        child.widget.pack()
 
     def update(self):
         super().update()
@@ -244,10 +286,11 @@ class TkButton(TkComponent):
             command=event_prop_invoker(self, 'on_click')
         )
 
-    def get_widget_config(self, text='', **props):
+    def get_widget_config(self, text='', disabled=False, **props):
         cfg = super().get_widget_config(**props)
 
         cfg['text'] = text
+        cfg['state'] = 'disabled' if disabled else 'normal'
 
         return cfg
 
@@ -265,6 +308,10 @@ class TkLabel(TkComponent):
 
 
 class TkWindow(_PackContainerBase, TkFlatContainer, TkComponent):
+    @property
+    def layout_props(self):
+        return self.props
+
     tk_ignore_subtree = True
 
     def _on_close(self):
@@ -283,6 +330,10 @@ class TkWindow(_PackContainerBase, TkFlatContainer, TkComponent):
 
         return widget
 
+    def configure_widget(self, widget: tk.Toplevel):
+        super().configure_widget(widget)
+        configure_window(widget, **self.props)
+
 
 class TkEntry(TkComponent):
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
@@ -298,4 +349,4 @@ class TkEntry(TkComponent):
     def text(self, value):
         w: ttk.Entry = self.widget
         w.delete(0, len(w.get()))
-        w.insert(value)
+        w.insert(0, value)

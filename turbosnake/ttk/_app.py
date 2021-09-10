@@ -1,7 +1,7 @@
 from ._components import TkTree
 
 
-def tk_app(widget=None):
+def tk_app(widget=None, **options):
     """Shortcut function that creates TkTree, renders it's content and starts main loop.
 
     Usage:
@@ -10,7 +10,7 @@ def tk_app(widget=None):
         with tk_app():
             root(...)
     """
-    tree = TkTree(widget)
+    tree = TkTree(widget, **options)
 
     class _App:
         def __enter__(self):
