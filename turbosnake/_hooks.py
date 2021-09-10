@@ -23,6 +23,13 @@ class Hook(metaclass=ABCMeta):
 class ComponentHookProcessor(metaclass=ABCMeta):
     CONTEXT_ID = 'ComponentHookProcessor'
 
+    def __init__(self, component):
+        self.__component = component
+
+    @property
+    def component(self):
+        return self.__component
+
     @classmethod
     def current(cls) -> 'ComponentHookProcessor':
         ctx = get_render_context(cls.CONTEXT_ID)
@@ -50,7 +57,7 @@ class ComponentHookProcessor(metaclass=ABCMeta):
 
 class _NextHookProcessor(ComponentHookProcessor):
     def __init__(self, component: Component, hooks):
-        self.__component = component
+        super().__init__(component)
         self.__hooks = hooks
 
     def start(self):
@@ -60,7 +67,7 @@ class _NextHookProcessor(ComponentHookProcessor):
         try:
             hook = next(self.__iterator)
         except StopIteration:
-            raise Exception(f'Wrong number of hooks rendered in {self.__component.class_id()}.\
+            raise Exception(f'Wrong number of hooks rendered in {self.component.class_id()}.\
                             At least one more {hook_class} is going to be rendered.')
 
         if hook.__class__ is not hook_class:
@@ -72,7 +79,7 @@ class _NextHookProcessor(ComponentHookProcessor):
         try:
             h = next(self.__iterator)
 
-            raise Exception(f'Wrong number of hooks rendered in {self.__component.class_id()}.\
+            raise Exception(f'Wrong number of hooks rendered in {self.component.class_id()}.\
                             At least one more {h.__class__} hook expected.')
         except StopIteration:
             pass  # ok!
@@ -88,19 +95,19 @@ class _NextHookProcessor(ComponentHookProcessor):
 
 class InitialHookProcessor(ComponentHookProcessor):
     def __init__(self, component):
-        self.__component = component
+        super().__init__(component)
 
     def start(self):
         self.__hooks = []
 
     def process_hook(self, hook_class, *args, **kwargs):
-        hook = hook_class(self.__component)
+        hook = hook_class(self.component)
         self.__hooks.append(hook)
 
         return hook.first_call(*args, **kwargs)
 
     def finish(self) -> 'ComponentHookProcessor':
-        return _NextHookProcessor(self.__component, self.__hooks)
+        return _NextHookProcessor(self.component, self.__hooks)
 
     def on_unmount(self):
         pass
@@ -307,6 +314,38 @@ def use_callback(*args):
         ...
     """
     return use_function_hook(_CallbackHook, *args)
+
+
+class _CallbackProxyHook(Hook):
+    def first_call(self, callback):
+        self.__callback = callback
+        return self
+
+    def next_call(self, callback):
+        self.__callback = callback
+        return self
+
+    def __call__(self, *args, **kwargs):
+        return self.__callback(*args, **kwargs)
+
+
+def use_callback_proxy(callback):
+    """Hook that returns the same callable redirecting calls to callback passed on last render.
+
+    Unlike use_callback doesn't accept any dependencies 'cause doesn't need them.
+
+    cb1 = use_callback_proxy(lambda ...: ...)
+
+    @use_callback_proxy
+    def cb2(...):
+        ...
+    """
+    return ComponentHookProcessor.current().process_hook(_CallbackProxyHook, callback)
+
+
+def use_self():
+    """Pseudo-hook that returns reference to currently rendered component."""
+    return ComponentHookProcessor.current().component
 
 
 class _EffectHook(Hook):

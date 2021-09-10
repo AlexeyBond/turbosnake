@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from turbosnake import functional_component, use_ref, use_callback, use_toggle, use_state
+from turbosnake import functional_component, use_ref, use_toggle, use_state, use_callback_proxy
 from turbosnake.ttk import tk_app, TkEntry, TkButton, TkWindow, TkLabel, TkPackedFrame
 
 
@@ -8,12 +8,12 @@ from turbosnake.ttk import tk_app, TkEntry, TkButton, TkWindow, TkLabel, TkPacke
 def create_form(on_create, on_dismiss):
     input_ref = use_ref()
 
-    @use_callback(input_ref, on_create, on_dismiss)
+    @use_callback_proxy
     def create():
         on_create(input_ref.current.text)
         on_dismiss()
 
-    @use_callback(input_ref, on_create)
+    @use_callback_proxy
     def create_and_continue():
         on_create(input_ref.current.text)
         input_ref.current.text = ''
@@ -28,7 +28,7 @@ def create_form(on_create, on_dismiss):
 
 @functional_component
 def todo_item(name, text, on_done):
-    @use_callback([on_done])
+    @use_callback_proxy
     def done():
         on_done(name)
 
@@ -45,14 +45,14 @@ def root():
     items, set_items = use_state(OrderedDict({'TODO-0': 'Make this example look better'}))
     counter, set_counter = use_state(1)
 
-    @use_callback(counter, items)
+    @use_callback_proxy
     def create(new_text):
         new_items = items.copy()
         new_items[f'TODO-{counter}'] = new_text
         set_counter(counter + 1)
         set_items(new_items)
 
-    @use_callback(items)
+    @use_callback_proxy
     def done(item_name):
         new_items = items.copy()
         del new_items[item_name]
