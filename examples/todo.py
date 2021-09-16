@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from turbosnake import functional_component, use_ref, use_toggle, use_state, use_callback_proxy
-from turbosnake.ttk import tk_app, TkEntry, TkButton, TkWindow, TkLabel, TkPackedFrame
+from turbosnake.ttk import tk_app, TkEntry, TkButton, TkWindow, TkLabel, TkPackedFrame, tk_scrollable_frame
 
 
 @functional_component
@@ -39,10 +39,15 @@ def todo_item(name, text, on_done):
             TkLabel(text=text, anchor='w')
 
 
+INITIAL_LIST = OrderedDict({
+    'TODO-0': 'Make this example look better',
+})
+
+
 @functional_component
 def root():
     create_open, toggle_create_open = use_toggle()
-    items, set_items = use_state(OrderedDict({'TODO-0': 'Make this example look better'}))
+    items, set_items = use_state(INITIAL_LIST)
     counter, set_counter = use_state(1)
 
     @use_callback_proxy
@@ -66,8 +71,9 @@ def root():
 
     TkButton(text='Add', on_click=toggle_create_open, disabled=create_open)
 
-    for name, text in items.items():
-        todo_item(key=name, text=text, name=name, on_done=done)
+    with tk_scrollable_frame(fill='both', expand=1):
+        for name, text in items.items():
+            todo_item(key=name, text=text, name=name, on_done=done)
 
 
 if __name__ == '__main__':

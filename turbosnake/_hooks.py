@@ -6,7 +6,7 @@ from ._render_context import enter_render_context, get_render_context
 
 class Hook(metaclass=ABCMeta):
     def __init__(self, component):
-        pass
+        super().__init__()
 
     @abstractmethod
     def first_call(self, *args, **kwargs):
@@ -371,14 +371,16 @@ class _EffectHook(Hook):
 
     def __enqueue_effect(self, effect):
         if not self.__next_effect:
-            self.__component.tree.schedule_task(self.__execute_effect)
+            self.__component.tree.enqueue_task(self.__queue, self.__execute_effect)
         self.__next_effect = effect
 
-    def first_call(self, effect, *dependencies):
+    def first_call(self, effect, *dependencies, queue):
+        self.__queue = queue
         self.__dependencies = dependencies
         self.__enqueue_effect(effect)
 
-    def next_call(self, effect, *dependencies):
+    def next_call(self, effect, *dependencies, queue):
+        self.__queue = queue
         if self.__dependencies == dependencies:
             return
 
@@ -386,10 +388,10 @@ class _EffectHook(Hook):
         self.__enqueue_effect(effect)
 
     def on_unmount(self):
-        self.__component.tree.schedule_task(self.__revert_previous)
+        self.__component.tree.enqueue_task(self.__queue, self.__revert_previous)
 
 
-def use_effect(*args):
+def use_effect(*args, queue='effect'):
     """Executes a side-effect.
 
     # Executes a lambda when any of dependencies changes since last render:
@@ -419,7 +421,7 @@ def use_effect(*args):
 
     Note: effect functions and effect revert functions are not called immediately but are scheduled on tree's event loop
     """
-    return use_function_hook(_EffectHook, *args)
+    return use_function_hook(_EffectHook, *args, queue=queue)
 
 
 class _RefHook(Hook, Ref):

@@ -12,35 +12,57 @@ class Ref:
 
 
 class Tree:
-    def __init__(self):
+    TASK_QUEUES = ('update', 'effect')
+
+    def __init__(self, queues=TASK_QUEUES):
         super().__init__()
-        self.__update_queue = queue.SimpleQueue()
-        self.__update_processing_scheduled = False
+        self.__queue_names = queues
+        self.__queues = {}
+        for queue_name in queues:
+            self.__queues[queue_name] = queue.SimpleQueue()
+
+        self.__task_processing_scheduled = False
         self.__root: Optional[Component] = None
 
-    def enqueue_update_component(self, component):
-        self.__update_queue.put(component)
-        if not self.__update_processing_scheduled:
-            self.schedule_task(self.process_updates)
-            self.__update_processing_scheduled = True
+    def enqueue_task(self, queue_name, task):
+        self.__queues[queue_name].put(task)
 
-    def process_updates(self):
-        self.__update_processing_scheduled = False
+        if not self.__task_processing_scheduled:
+            self.schedule_task(self.__run_tasks)
+            self.__task_processing_scheduled = True
+
+    def __run_from_queue(self, queue_name):
+        q = self.__queues[queue_name]
 
         try:
-            while True:
-                component = self.__update_queue.get_nowait()
-                try:
-                    component.update()
-                except Exception as e:
-                    self.handle_update_error(e, component=component)
+            task = q.get_nowait()
         except queue.Empty:
-            pass
+            return False
+
+        while True:
+            try:
+                task()
+            except Exception as e:
+                self.handle_error(e, queue_name, task)
+
+            try:
+                task = q.get_nowait()
+            except queue.Empty:
+                return True
+
+    def __run_tasks(self):
+        self.__task_processing_scheduled = False
+
+        for queue_name in self.__queue_names:
+            if self.__run_from_queue(queue_name):
+                self.schedule_task(self.__run_tasks)
+                self.__task_processing_scheduled = True
+                return
 
     def schedule_task(self, callback):
         raise NotImplementedError()
 
-    def handle_update_error(self, error: Exception, component: 'Component'):
+    def handle_error(self, error, queue_name, task):
         raise error
 
     @property
@@ -109,7 +131,7 @@ class Component:
 
     def enqueue_update(self):
         if not self.__update_enqueued:
-            self.__tree.enqueue_update_component(self)
+            self.__tree.enqueue_task('update', self.update)
             self.__update_enqueued = True
 
     def update_props_from(self, other: 'Component') -> bool:
