@@ -6,8 +6,7 @@ from abc import abstractmethod, ABCMeta, ABC
 from collections import Generator, Iterable
 from typing import Optional
 
-from turbosnake import Component, Tree, ParentComponent, DynamicComponent, ComponentsCollection, functional_component, \
-    use_ref, use_effect
+from turbosnake import Component, Tree, ComponentsCollection, functional_component, use_ref, use_effect, Wrapper
 
 
 class TkBase(metaclass=ABCMeta):
@@ -19,6 +18,10 @@ class TkBase(metaclass=ABCMeta):
     @property
     @abstractmethod
     def tree(self):
+        ...
+
+    @abstractmethod
+    def get_window(self) -> 'TkBase':
         ...
 
     def on_tk_child_mounted(self, child):
@@ -111,6 +114,9 @@ def configure_window(
 
 
 class TkTree(Tree, _PackContainerBase, TkBase):
+    def get_window(self):
+        return self
+
     def __init__(self, widget=None, **options):
         super().__init__(queues=(*super().TASK_QUEUES, 'layout', 'layout_effect'))
 
@@ -193,12 +199,18 @@ class TkComponent(Component, TkBase):
 
         self.configure_widget(self.__widget)
 
+        # TODO:
+        # self.tk_parent.on_tk_child_updated(self)
+
     @abstractmethod
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
         ...
 
     def get_widget_config(self, **props):
         return {}
+
+    def get_window(self):
+        return self.tk_parent.get_window()
 
 
 def event_prop_invoker(self, prop_name):
@@ -257,15 +269,7 @@ def tk_with_events(event_map: Iterable[str, str]):
     return _tk_component_with_events
 
 
-class TkFlatContainer(TkComponent, ParentComponent, DynamicComponent, ABC):
-    def render(self):
-        pass  # not called
-
-    def render_children(self) -> ComponentsCollection:
-        return self.props.get('children', ComponentsCollection.EMPTY)
-
-
-class TkPackedFrame(_PackContainerBase, TkFlatContainer):
+class TkPackedFrame(_PackContainerBase, TkComponent, Wrapper):
     @property
     def layout_props(self):
         return self.props
@@ -311,7 +315,7 @@ class TkLabel(TkComponent):
         return cfg
 
 
-class TkWindow(_PackContainerBase, TkFlatContainer, TkComponent):
+class TkWindow(_PackContainerBase, TkComponent, Wrapper):
     @property
     def layout_props(self):
         return self.props
@@ -337,6 +341,9 @@ class TkWindow(_PackContainerBase, TkFlatContainer, TkComponent):
     def configure_widget(self, widget: tk.Toplevel):
         super().configure_widget(widget)
         configure_window(widget, **self.props)
+
+    def get_window(self):
+        return self
 
 
 class TkEntry(TkComponent):
@@ -374,7 +381,7 @@ class TkScrollbar(TkComponent):
         return conf
 
 
-class TkCanvas(_PackContainerBase, TkFlatContainer, TkComponent):
+class TkCanvas(_PackContainerBase, TkComponent, Wrapper):
     @property
     def layout_props(self):
         return self.props
@@ -457,3 +464,40 @@ def tk_scrollable_frame(
             with TkPackedFrame(ref=interior_ref):
                 children()
         TkScrollbar(orientation='vertical', fill='y', side='right', expand=0, ref=scrollbar_ref)
+
+
+class TkRadioGroup(Wrapper, Component):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.on_selected = event_prop_invoker(self, 'on_selected')
+
+    @staticmethod
+    def get_for(component: Component, name) -> 'TkRadioGroup':
+        def predicate(c):
+            return isinstance(c, TkRadioGroup) and c.name == name
+
+        return component.first_matching_ascendant(predicate)
+
+    @property
+    def name(self):
+        return self.props.get('name', None)
+
+    def mount(self, parent):
+        super().mount(parent)
+
+        self.variable = tk.Variable(
+            value=self.props.get('initial_value', None)
+        )
+
+    def unmount(self):
+        super().unmount()
+
+        del self.variable
+
+    def update_props_from(self, other: 'Component') -> bool:
+        assert self.props.get('name', None) == other.props.get('name', None), \
+            f"""Radio group name must not be changed but was changed from {
+            self.props.get('name', None)} to {other.props.get('name', None)}"""
+
+        return super().update_props_from(other)

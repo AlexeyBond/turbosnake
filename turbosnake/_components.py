@@ -417,13 +417,18 @@ class ParentComponent(Component):
         self.props['children'] = builder.build()
 
 
-class Fragment(DynamicComponent, ParentComponent):
+class Wrapper(DynamicComponent, ParentComponent):
+    """A component that can be rendered with a single set of children and mounts those children as it's children.
+    """
+
     def render(self):
         pass
 
     def render_children(self) -> ComponentsCollection:
         return self.props.get('children', ComponentsCollection.EMPTY)
 
+
+class Fragment(Wrapper):
     def update_props_from(self, other: 'Component') -> bool:
         if other.props.get('children', None) != self.props.get('children', None):
             self.props = other.props
