@@ -2,11 +2,25 @@ import tkinter as tk
 from abc import abstractmethod, ABCMeta, ABC
 from collections import Iterable
 
-from ._components import TkComponent, event_prop_invoker, TkRadioGroup
-from .. import Component, Wrapper
+from ._adapters import TkRadioGroup
+from ._core import TkComponent
+from .. import Component, Wrapper, event_prop_invoker
+
+"""
+_menu.py
+
+Contains turbosnake adapters for tkinter's menu functionality.
+
+Unlike normal widgets, menu items cannot be created and managed as separate objects, instead they should be created
+using corresponding methods of containing menu.
+That causes a difference in lifecycles of tk components and menu components.
+So as menu-related components are that different from normal widgets they are placed here, in a separate file.
+"""
 
 
 class _TkMenuComponent(metaclass=ABCMeta):
+    """Base class for things that may be added to menus."""
+
     @abstractmethod
     def add_to_menu(self, menu: tk.Menu):
         ...
@@ -90,6 +104,7 @@ class TkMenu(_TkMenuComponent, Wrapper, TkComponent):
 
 
 class TkWindowMenu(TkMenu):
+    """Menu that automatically attaches to containing window when mounted."""
     def mount(self, parent):
         super().mount(parent)
 

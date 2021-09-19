@@ -1,4 +1,5 @@
-from ._app import tk_app
-from ._components import TkComponent, TkTree, TkPackedFrame, TkLabel, TkButton, TkWindow, TkEntry, TkScrollbar, \
-    TkCanvas, tk_scrollable_frame, TkRadioGroup
+from ._adapters import TkPackedFrame, TkLabel, TkButton, TkWindow, TkEntry, TkScrollbar, TkCanvas, TkRadioGroup
+from ._composite import tk_scrollable_frame
+from ._core import TkComponent, TkTree
 from ._menu import TkMenu, TkWindowMenu, TkMenuCommand, TkMenuSeparator, TkMenuCheckbutton, TkMenuRadioButton
+from ._utils import tk_app
