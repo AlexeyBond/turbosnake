@@ -26,4 +26,4 @@ jobs:
       - name: Submit coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python -m coveralls
+        run: python -m coveralls --service=github
