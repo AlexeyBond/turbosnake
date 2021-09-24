@@ -24,4 +24,6 @@ jobs:
         run: |
           python -m coverage run --source=turbosnake -m unittest discover .
       - name: Submit coverage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python -m coveralls
