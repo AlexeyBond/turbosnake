@@ -55,6 +55,10 @@ class ComponentHookProcessor(metaclass=ABCMeta):
         ...
 
 
+class HookSequenceError(Exception):
+    pass
+
+
 class _NextHookProcessor(ComponentHookProcessor):
     def __init__(self, component: Component, hooks):
         super().__init__(component)
@@ -67,11 +71,11 @@ class _NextHookProcessor(ComponentHookProcessor):
         try:
             hook = next(self.__iterator)
         except StopIteration:
-            raise Exception(f'Wrong number of hooks rendered in {self.component.class_id()}.\
+            raise HookSequenceError(f'Wrong number of hooks rendered in {self.component.class_id()}.\
                             At least one more {hook_class} is going to be rendered.')
 
         if hook.__class__ is not hook_class:
-            raise Exception(f'Broken hook order. Hook {hook_class} rendered instead of {hook.__class__}.')
+            raise HookSequenceError(f'Broken hook order. Hook {hook_class} rendered instead of {hook.__class__}.')
 
         return hook.next_call(*args, **kwargs)
 
@@ -79,7 +83,7 @@ class _NextHookProcessor(ComponentHookProcessor):
         try:
             h = next(self.__iterator)
 
-            raise Exception(f'Wrong number of hooks rendered in {self.component.class_id()}.\
+            raise HookSequenceError(f'Wrong number of hooks rendered in {self.component.class_id()}.\
                             At least one more {h.__class__} hook expected.')
         except StopIteration:
             pass  # ok!
@@ -120,9 +124,9 @@ class ComponentWithHooks(DynamicComponent, ABC):
         self.__hook_processor: ComponentHookProcessor = InitialHookProcessor(self)
 
     def unmount(self):
-        super().unmount()
-
         self.__hook_processor.on_unmount()
+
+        super().unmount()
 
     def render_children(self) -> ComponentsCollection:
         hp = self.__hook_processor
@@ -293,7 +297,7 @@ class _CallbackHook(Hook):
     def next_call(self, fn, *dependencies):
         if self.__dependencies == dependencies:
             return self.__fn
-        return self.first_call(fn, dependencies)
+        return self.first_call(fn, *dependencies)
 
 
 def use_callback(*args):

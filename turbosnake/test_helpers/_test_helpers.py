@@ -14,8 +14,13 @@ class TestTree(Tree):
         self.__callbacks.append(callback)
 
     def run_tasks(self):
+        ran_tasks = 0
+
         while len(self.__callbacks):
             self.__callbacks.pop(0)()
+            ran_tasks += 1
+
+        return ran_tasks
 
 
 class ComponentSnapshotFormatter(BaseSnapshotFormatter):

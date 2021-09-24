@@ -6,7 +6,7 @@ def event_prop_invoker(self: Component, prop_name):
 
     Resulting function reads property on every invocation, so it remains valid after the property is changed.
 
-    When property is missing or falsy, nothing happens on invocation of resulting function.
+    When property is missing, nothing happens on invocation of resulting function.
 
     :param self: component instance
     :param prop_name: name of a property containing event handler
