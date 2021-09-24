@@ -1,3 +1,6 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://github.com/AlexeyBond/turbosnake/workflows/Tests/badge.svg)](https://github.com/AlexeyBond/turbosnake/actions?query=workflow%3ATests)
+
 # turbosnake - a react.js-like framework for ui in python
 
 ## Motivation
