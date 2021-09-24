@@ -1,4 +1,4 @@
-from turbosnake import Fragment, DynamicComponent, Component
+from turbosnake import Fragment, DynamicComponent, Component, Ref, ComponentNotFoundError
 from turbosnake.test_helpers import TreeTestCase
 
 
@@ -78,7 +78,7 @@ class ComponentTest(TreeTestCase):
         self.assertEqual(False, children1[0].props['wrapped'])
         
         self.tree.root.set_state('wrap_in_fragment', True)
-        
+
         self.tree.run_tasks()
 
         children2 = list(self.tree.root.mounted_children())
@@ -88,3 +88,62 @@ class ComponentTest(TreeTestCase):
         self.assertEqual(1, len(children21))
         self.assertEqual(Component, children21[0].__class__)
         self.assertEqual(True, children21[0].props['wrapped'])
+
+    def test_set_ref(self):
+        ref0 = Ref()
+        ref1 = Ref()
+
+        with self.tree:
+            with Fragment(ref=ref0):
+                Fragment(ref=ref1)
+
+        self.tree.run_tasks()
+
+        self.assertIs(ref0.current, self.tree.root)
+        self.assertIs(ref1.current, list(self.tree.root.mounted_children())[0])
+
+    def test_first_matching_ascendant_failure(self):
+        ref = Ref()
+        with self.tree:
+            Fragment(ref=ref)
+
+        self.tree.run_tasks()
+
+        with self.assertRaises(ComponentNotFoundError):
+            ref.current.first_matching_ascendant(lambda _: False)
+
+    def test_first_matching_ascendant_success(self):
+        ref0 = Ref()
+        ref1 = Ref()
+
+        with self.tree:
+            with Fragment():
+                with Fragment(ref=ref0, flag=True):
+                    with Fragment():
+                        Fragment(ref=ref1)
+
+        self.tree.run_tasks()
+
+        self.assertIs(
+            ref1.current.first_matching_ascendant(lambda it: it.props.get('flag', False)),
+            ref0.current
+        )
+
+    def test_first_matching_descendants(self):
+        ref0, ref1, ref2 = Ref(), Ref(), Ref()
+
+        with self.tree:
+            with Fragment(ref=ref0):
+                with Fragment():
+                    with Fragment(ref=ref1, flag=True):
+                        Fragment(flag=True)
+                Fragment(ref=ref2, flag=True)
+
+        self.tree.run_tasks()
+
+        res = ref0.current.first_matching_descendants(lambda c: c.props.get('flag', False))
+
+        self.assertEqual(
+            list(res),
+            [ref1.current, ref2.current]
+        )

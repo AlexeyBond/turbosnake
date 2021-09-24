@@ -22,7 +22,7 @@ jobs:
           pip install -r requirements.txt
       - name: Run tests
         run: |
-          python -m coverage run --source=turbosnake -m unittest discover .
+          python -m coverage run --source=turbosnake --omit=**/test/** -m unittest discover .
       - name: Submit coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

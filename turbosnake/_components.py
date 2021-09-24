@@ -1,5 +1,5 @@
 import queue
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 from collections import OrderedDict, Counter, Iterable
 from typing import Optional
 
@@ -11,7 +11,7 @@ class Ref:
         self.current = None
 
 
-class Tree:
+class Tree(metaclass=ABCMeta):
     TASK_QUEUES = ('update', 'effect')
 
     def __init__(self, queues=TASK_QUEUES):
@@ -59,8 +59,9 @@ class Tree:
                 self.__task_processing_scheduled = True
                 return
 
+    @abstractmethod
     def schedule_task(self, callback):
-        raise NotImplementedError()
+        ...
 
     def handle_error(self, error, queue_name, task):
         raise error
@@ -93,7 +94,12 @@ class Tree:
 
         new_root = ctx.get_component()
         new_root.mount(self)
+        new_root.assign_ref()
         self.__root = new_root
+
+
+class ComponentNotFoundError(Exception):
+    pass
 
 
 class Component:
@@ -207,8 +213,7 @@ class Component:
             if predicate(asc):
                 return asc
 
-        # TODO: Add custom exception
-        raise Exception('No such ascendant')
+        raise ComponentNotFoundError()
 
     @property
     def tree(self):
@@ -382,7 +387,7 @@ class DynamicComponent(Component):
 
     @abstractmethod
     def render(self):
-        raise NotImplementedError()
+        ...
 
     def render_children(self) -> ComponentsCollection:
         # TODO: Not the best name?
