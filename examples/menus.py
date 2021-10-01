@@ -1,8 +1,8 @@
 import sys
 
 from turbosnake import functional_component, use_state
-from turbosnake.ttk import tk_app, TkWindow, TkMenu, TkWindowMenu, TkMenuCommand, TkMenuSeparator, TkMenuCheckbutton, \
-    TkLabel, TkRadioGroup, TkMenuRadioButton
+from turbosnake.ttk import tk_app, tk_menu, tk_window_menu, tk_menu_command, tk_menu_separator, tk_menu_checkbutton, \
+    tk_label, tk_radio_group, tk_menu_radiobutton, tk_window
 
 
 def on_exit(*_):
@@ -13,34 +13,34 @@ def on_exit(*_):
 def root():
     foo, set_foo = use_state('Foo!')
 
-    with TkWindowMenu():
-        with TkMenu(label='Bar'):
-            with TkMenu(label='Baz'):
-                TkMenuCommand(label='Foo')
-                TkMenuCommand(label='Exit', on_click=on_exit)
+    with tk_window_menu():
+        with tk_menu(label='Bar'):
+            with tk_menu(label='Baz'):
+                tk_menu_command(label='Foo')
+                tk_menu_command(label='Exit', on_click=on_exit)
 
-        with TkMenu(label='FfOoOo'):
-            with TkRadioGroup(initial_value='foO'):
-                TkMenuRadioButton(label='Foo', value='Foo')
-                TkMenuRadioButton(label='foO', value='foO')
-                TkMenuRadioButton(label='fOo', value='fOo')
+        with tk_menu(label='FfOoOo'):
+            with tk_radio_group(initial_value='foO'):
+                tk_menu_radiobutton(label='Foo', value='Foo')
+                tk_menu_radiobutton(label='foO', value='foO')
+                tk_menu_radiobutton(label='fOo', value='fOo')
 
-    TkLabel(text=foo)
+    tk_label(text=foo)
 
-    with TkWindow(title='Window 2'):
-        with TkWindowMenu():
-            with TkMenu(label='File'):
-                TkMenuCommand(label='Open')
-                TkMenuCheckbutton(label='Foo?', on_value='Foo!', off_value='No FOO!', on_change=set_foo,
-                                  initial_value=foo)
-                TkMenuSeparator()
-                TkMenuCommand(label='Exit', on_click=on_exit)
+    with tk_window(title='Window 2'):
+        with tk_window_menu():
+            with tk_menu(label='File'):
+                tk_menu_command(label='Open')
+                tk_menu_checkbutton(label='Foo?', on_value='Foo!', off_value='No FOO!', on_change=set_foo,
+                                    initial_value=foo)
+                tk_menu_separator()
+                tk_menu_command(label='Exit', on_click=on_exit)
 
             if foo == 'Foo!':
-                with TkMenu(label='Foo'):
-                    TkMenuCommand(label='Bar')
+                with tk_menu(label='Foo'):
+                    tk_menu_command(label='Bar')
 
-            TkMenuCommand(label=foo, disabled=foo != 'Foo!')
+            tk_menu_command(label=foo, disabled=foo != 'Foo!')
 
 
 if __name__ == '__main__':

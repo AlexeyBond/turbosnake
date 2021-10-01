@@ -1,3 +1,5 @@
+from inspect import isclass
+
 from snapshottest import TestCase as SnapshotTestCase
 from snapshottest.formatter import Formatter
 from snapshottest.formatters import BaseFormatter as BaseSnapshotFormatter
@@ -68,3 +70,15 @@ class TreeTestCase(SnapshotTestCase):
             self.tree.run_tasks()
 
         self.assertMatchSnapshot(self.tree.root, **kwargs)
+
+    def assertIsComponentInstance(self, component, component_class_or_inserter, msg=None):
+        if isclass(component_class_or_inserter) and issubclass(component_class_or_inserter, Component):
+            clz = component_class_or_inserter
+        elif hasattr(component_class_or_inserter, '__wrapped__') and isclass(
+                component_class_or_inserter.__wrapped__) and issubclass(component_class_or_inserter.__wrapped__,
+                                                                        Component):
+            clz = component_class_or_inserter.__wrapped__
+        else:
+            assert False, 'Second argument of assertIsComponentInstance must be a component class or inserter function'
+
+        self.assertIsInstance(component, clz, msg)

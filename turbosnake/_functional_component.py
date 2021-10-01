@@ -1,7 +1,8 @@
 import inspect
+from functools import update_wrapper
 from typing import Optional
 
-from ._components import Component, ParentComponent, DynamicComponent
+from ._components import Component, ParentComponent, DynamicComponent, component_inserter
 from ._hooks import ComponentWithHooks
 
 
@@ -35,7 +36,7 @@ def functional_component(
             def class_id(self):
                 return f'FunctionalComponent<{fn.__name__}>'
 
-        return FunctionComponent
+        return update_wrapper(component_inserter(FunctionComponent), fn)
 
     if fn:
         return _create_functional_component(fn)

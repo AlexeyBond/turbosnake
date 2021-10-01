@@ -1,6 +1,7 @@
 import queue
 from abc import abstractmethod, ABCMeta
 from collections import OrderedDict, Counter, Iterable
+from functools import wraps
 from typing import Optional
 
 from ._render_context import get_render_context, render_context_manager, enter_render_context
@@ -107,8 +108,6 @@ class Component:
         self.props = props
         self.key = key
         self.ref = ref
-
-        self.insert()
 
     def insert(self, context: 'ComponentRenderingContext' = None):
         assert not self.is_mounted(), 'Attempt to render a mounted component'
@@ -249,8 +248,8 @@ class ComponentsCollection(list):
         return True
 
     def __call__(self):
-        """Creates a `Fragment` containing all components from this collection."""
-        return Fragment(children=self)
+        """Creates and inserts a `Fragment` containing all components from this collection."""
+        return fragment(children=self)
 
     EMPTY: 'ComponentsCollection' = None
 
@@ -433,6 +432,16 @@ class Wrapper(DynamicComponent, ParentComponent):
         return self.props.get('children', ComponentsCollection.EMPTY)
 
 
+def component_inserter(component_class):
+    @wraps(component_class)
+    def _component_inserter(**props):
+        component: Component = component_class(**props)
+        component.insert()
+        return component
+
+    return _component_inserter
+
+
 class Fragment(Wrapper):
     def update_props_from(self, other: 'Component') -> bool:
         if other.props.get('children', None) != self.props.get('children', None):
@@ -443,3 +452,6 @@ class Fragment(Wrapper):
 
     def props_equal_to(self, other: 'Component') -> bool:
         return self.props.get('children', None) == other.props.get('children', None)
+
+
+fragment = component_inserter(Fragment)

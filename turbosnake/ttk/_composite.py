@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from turbosnake import use_ref, functional_component, ComponentsCollection, use_effect
-from ._adapters import TkPackedFrame, TkCanvas, TkScrollbar
+from ._adapters import tk_packed_frame, tk_canvas, tk_scrollbar
 
 """
 _composite.py
@@ -77,8 +77,8 @@ def tk_scrollable_frame(
 
         canvas_ref.current.tree.widget.bind('<MouseWheel>', print)
 
-    with TkPackedFrame(**props):
-        with TkCanvas(side='left', fill='both', expand=1, ref=canvas_ref):
-            with TkPackedFrame(ref=interior_ref):
+    with tk_packed_frame(**props):
+        with tk_canvas(side='left', fill='both', expand=1, ref=canvas_ref):
+            with tk_packed_frame(ref=interior_ref):
                 children()
-        TkScrollbar(orientation='vertical', fill='y', side='right', expand=0, ref=scrollbar_ref)
+        tk_scrollbar(orientation='vertical', fill='y', side='right', expand=0, ref=scrollbar_ref)

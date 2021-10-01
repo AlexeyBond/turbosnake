@@ -1,36 +1,37 @@
-from turbosnake import Fragment, DynamicComponent, Component, Ref, ComponentNotFoundError
+from turbosnake import fragment, DynamicComponent, Component, Ref, ComponentNotFoundError
+from turbosnake._components import Fragment
 from turbosnake.test_helpers import TreeTestCase
 
 
 class ComponentTest(TreeTestCase):
     def test_nested_fragments(self):
         with self.tree:
-            with Fragment():
-                Fragment()
-                with Fragment():
-                    Fragment()
+            with fragment():
+                fragment()
+                with fragment():
+                    fragment()
 
-        self.assertIsInstance(self.tree.root, Fragment)
+        self.assertIsComponentInstance(self.tree.root, fragment)
         self.assertEqual(len(list(self.tree.root.mounted_children())), 0)
 
         self.tree.run_tasks()
 
         root_children = list(self.tree.root.mounted_children())
         self.assertEqual(len(root_children), 2)
-        self.assertIsInstance(root_children[0], Fragment)
+        self.assertIsComponentInstance(root_children[0], fragment)
         self.assertEqual(len(list(root_children[0].mounted_children())), 0)
-        self.assertIsInstance(root_children[1], Fragment)
+        self.assertIsComponentInstance(root_children[1], fragment)
         child1_children = list(root_children[1].mounted_children())
         self.assertEqual(len(child1_children), 1)
-        self.assertIsInstance(child1_children[0], Fragment)
+        self.assertIsComponentInstance(child1_children[0], fragment)
 
     def test_nested_fragments_snapshot(self):
-        """Both verifies again validity of Tree+Fragment behavior AND validity of snapshot testing functionality"""
+        """Both verifies again validity of Tree+fragment behavior AND validity of snapshot testing functionality"""
         with self.tree:
-            with Fragment():
-                Fragment()
-                with Fragment():
-                    Fragment()
+            with fragment():
+                fragment()
+                with fragment():
+                    fragment()
 
         self.assertTreeMatchesSnapshot()
 
@@ -39,10 +40,10 @@ class ComponentTest(TreeTestCase):
             def render(self):
                 Component(
                     prop1=self.get_state_or_init('state1', None)
-                )
+                ).insert()
 
         with self.tree:
-            TestComponent()
+            TestComponent().insert()
 
         self.tree.run_tasks()
 
@@ -62,21 +63,21 @@ class ComponentTest(TreeTestCase):
                 wrap = self.get_state_or_init('wrap_in_fragment', False)
 
                 if wrap:
-                    with Fragment():
-                        Component(wrapped=wrap)
+                    with fragment():
+                        Component(wrapped=wrap).insert()
                 else:
-                    Component(wrapped=wrap)
-        
+                    Component(wrapped=wrap).insert()
+
         with self.tree:
-            TestComponent()
-        
+            TestComponent().insert()
+
         self.tree.run_tasks()
 
         children1 = list(self.tree.root.mounted_children())
         self.assertEqual(1, len(children1))
         self.assertEqual(Component, children1[0].__class__)
         self.assertEqual(False, children1[0].props['wrapped'])
-        
+
         self.tree.root.set_state('wrap_in_fragment', True)
 
         self.tree.run_tasks()
@@ -94,8 +95,8 @@ class ComponentTest(TreeTestCase):
         ref1 = Ref()
 
         with self.tree:
-            with Fragment(ref=ref0):
-                Fragment(ref=ref1)
+            with fragment(ref=ref0):
+                fragment(ref=ref1)
 
         self.tree.run_tasks()
 
@@ -105,7 +106,7 @@ class ComponentTest(TreeTestCase):
     def test_first_matching_ascendant_failure(self):
         ref = Ref()
         with self.tree:
-            Fragment(ref=ref)
+            fragment(ref=ref)
 
         self.tree.run_tasks()
 
@@ -117,10 +118,10 @@ class ComponentTest(TreeTestCase):
         ref1 = Ref()
 
         with self.tree:
-            with Fragment():
-                with Fragment(ref=ref0, flag=True):
-                    with Fragment():
-                        Fragment(ref=ref1)
+            with fragment():
+                with fragment(ref=ref0, flag=True):
+                    with fragment():
+                        fragment(ref=ref1)
 
         self.tree.run_tasks()
 
@@ -133,11 +134,11 @@ class ComponentTest(TreeTestCase):
         ref0, ref1, ref2 = Ref(), Ref(), Ref()
 
         with self.tree:
-            with Fragment(ref=ref0):
-                with Fragment():
-                    with Fragment(ref=ref1, flag=True):
-                        Fragment(flag=True)
-                Fragment(ref=ref2, flag=True)
+            with fragment(ref=ref0):
+                with fragment():
+                    with fragment(ref=ref1, flag=True):
+                        fragment(flag=True)
+                fragment(ref=ref2, flag=True)
 
         self.tree.run_tasks()
 

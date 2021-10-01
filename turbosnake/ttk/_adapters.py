@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
+from typing import Callable, Optional, Literal
 
-from turbosnake import Wrapper, Component, event_prop_invoker
+from turbosnake import Wrapper, Component, event_prop_invoker, component, noop_handler
 from turbosnake.ttk._core import _PackContainerBase, TkComponent, configure_window
 
 """
@@ -42,6 +43,20 @@ class TkWindow(_PackContainerBase, TkComponent, Wrapper):
         return self
 
 
+@component(TkWindow)
+def tk_window(
+        *,
+        title: str,
+        resizable: bool = True,
+        on_close: Callable = noop_handler,
+        resizable_w: Optional[int] = None,
+        resizable_h: Optional[int] = None,
+        min_height: int = 1,
+        min_width: int = 1,
+        **_):
+    ...
+
+
 class TkPackedFrame(_PackContainerBase, TkComponent, Wrapper):
     @property
     def layout_props(self):
@@ -60,6 +75,14 @@ class TkPackedFrame(_PackContainerBase, TkComponent, Wrapper):
         self.schedule_repack()
 
 
+@component(TkPackedFrame)
+def tk_packed_frame(
+        *,
+        default_side: Literal['top', 'bottom', 'left', 'right'] = 'top',
+        **_):
+    ...
+
+
 class TkButton(TkComponent):
     def create_widget(self, tk_parent):
         return ttk.Button(
@@ -67,7 +90,7 @@ class TkButton(TkComponent):
             command=event_prop_invoker(self, 'on_click')
         )
 
-    def get_widget_config(self, text='', disabled=False, **props):
+    def get_widget_config(self, text, disabled, **props):
         cfg = super().get_widget_config(**props)
 
         cfg['text'] = text
@@ -76,11 +99,21 @@ class TkButton(TkComponent):
         return cfg
 
 
+@component(TkButton)
+def tk_button(
+        *,
+        on_click: Callable = noop_handler,
+        text: str = '',
+        disabled: bool = False,
+        **_):
+    ...
+
+
 class TkLabel(TkComponent):
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
         return ttk.Label(tk_parent)
 
-    def get_widget_config(self, text='', **props):
+    def get_widget_config(self, text, **props):
         cfg = super().get_widget_config(**props)
 
         cfg['text'] = text
@@ -88,10 +121,18 @@ class TkLabel(TkComponent):
         return cfg
 
 
+@component(TkLabel)
+def tk_label(
+        *,
+        text: str = '',
+        **_):
+    ...
+
+
 class TkEntry(TkComponent):
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
         widget = ttk.Entry(tk_parent)
-        widget.insert(0, self.props.get('initial_value', ''))
+        widget.insert(0, self.props['initial_value'])
         return widget
 
     @property
@@ -105,6 +146,14 @@ class TkEntry(TkComponent):
         w.insert(0, value)
 
 
+@component(TkEntry)
+def tk_entry(
+        *,
+        initial_value: str = '',
+        **_):
+    ...
+
+
 class TkScrollbar(TkComponent):
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
         scrollbar = ttk.Scrollbar(tk_parent)
@@ -115,12 +164,21 @@ class TkScrollbar(TkComponent):
 
         return scrollbar
 
-    def get_widget_config(self, orientation='vertical', **props):
+    def get_widget_config(self, orientation, **props):
         conf = super().get_widget_config(**props)
 
         conf['orient'] = orientation
 
         return conf
+
+
+@component(TkScrollbar)
+def tk_scrollbar(
+        *,
+        on_scroll: Callable = noop_handler,
+        orientation: Literal['vertical', 'horizontal'] = 'vertical',
+        **_):
+    ...
 
 
 class TkCanvas(_PackContainerBase, TkComponent, Wrapper):
@@ -131,13 +189,22 @@ class TkCanvas(_PackContainerBase, TkComponent, Wrapper):
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
         return tk.Canvas(tk_parent)
 
-    def get_widget_config(self, border_width=0, highlight_thickness=0, **props):
+    def get_widget_config(self, border_width, highlight_thickness, **props):
         cfg = super().get_widget_config(**props)
 
         cfg['borderwidth'] = border_width
         cfg['highlightthickness'] = highlight_thickness
 
         return cfg
+
+
+@component(TkCanvas)
+def tk_canvas(
+        *,
+        border_width: int = 0,
+        highlight_thickness: int = 0,
+        **_):
+    ...
 
 
 class TkRadioGroup(Wrapper, Component):
@@ -175,3 +242,13 @@ class TkRadioGroup(Wrapper, Component):
             self.props.get('name', None)} to {other.props.get('name', None)}"""
 
         return super().update_props_from(other)
+
+
+@component(TkRadioGroup)
+def tk_radio_group(
+        *,
+        on_selected: Callable = noop_handler,
+        name: Optional[str] = None,
+        initial_value=None,
+        **_):
+    ...

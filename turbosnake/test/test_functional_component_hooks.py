@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from turbosnake import functional_component, use_self, Ref, use_state, Component, use_toggle, Fragment, use_previous, \
+from turbosnake import functional_component, use_self, Ref, use_state, Component, use_toggle, fragment, use_previous, \
     use_ref, use_effect
 from turbosnake._hooks import HookSequenceError, use_callback_proxy, use_callback, use_memo
 from turbosnake.test_helpers import TreeTestCase
@@ -102,7 +102,7 @@ class UseStateTest(TreeTestCase):
             nonlocal set_state
             state, set_state = use_state('default state')
 
-            Component(test_prop=state)
+            Component(test_prop=state).insert()
 
         with self.tree:
             tc()
@@ -138,7 +138,7 @@ class UseToggleTest(TreeTestCase):
             state, toggle = use_toggle()
 
             if state:
-                Fragment()
+                fragment()
 
         with self.tree:
             tc()
@@ -281,7 +281,7 @@ class UseEffectTest(TreeTestCase):
         rollback.assert_not_called()
 
         with self.tree:
-            Fragment()
+            fragment()
         self.tree.run_tasks()
 
         rollback.assert_called_once_with()

@@ -27,10 +27,7 @@ unmodified Python's syntax to represent its concepts.
 Instead of JSX's `<Component ... />` turbosnake uses a plain function call:
 
 ```python
-from turbosnake import Component
-
-...
-Component(...)
+component(...)
 ```
 
 In most cases, return value of such calls is useless. The main effect of such call is a component being appended to a
@@ -42,9 +39,9 @@ error.
 Children are added to a component using `with` operator:
 
 ```python
-with Component1(...):
-    Component11(...)
-    Component12(...)
+with component1(...):
+    component11(...)
+    component12(...)
 ```
 
 this fragment of code is kinda equivalent to the following JSX:
@@ -68,8 +65,8 @@ component:
 
 ```python
 def foo(**props):
-    with Component1():
-        Component2(**props)
+    with component1():
+        component2(**props)
 
 
 ...
@@ -87,8 +84,8 @@ from turbosnake import functional_component
 
 @functional_component
 def foo(**props):
-    with Component1():
-        Component2(**props)
+    with component1():
+        component2(**props)
 
 
 ...

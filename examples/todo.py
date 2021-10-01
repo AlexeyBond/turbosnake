@@ -1,7 +1,8 @@
 from collections import OrderedDict
 
 from turbosnake import functional_component, use_ref, use_toggle, use_state, use_callback_proxy
-from turbosnake.ttk import tk_app, TkEntry, TkButton, TkWindow, TkLabel, TkPackedFrame, tk_scrollable_frame
+from turbosnake.ttk import tk_app
+from turbosnake.ttk import tk_entry, tk_button, tk_window, tk_label, tk_packed_frame, tk_scrollable_frame
 
 
 @functional_component
@@ -18,12 +19,12 @@ def create_form(on_create, on_dismiss):
         on_create(input_ref.current.text)
         input_ref.current.text = ''
 
-    with TkWindow(on_close=on_dismiss, resizable=False, min_width=300, title='Create a TODO'):
-        TkEntry(ref=input_ref, initial_value='Procrastinate', fill='x', px=8, py=8)
+    with tk_window(on_close=on_dismiss, resizable=False, min_width=300, title='Create a TODO'):
+        tk_entry(ref=input_ref, initial_value='Procrastinate', fill='x', px=8, py=8)
 
-        with TkPackedFrame(default_side='left'):
-            TkButton(text='Create', on_click=create)
-            TkButton(text='Create+', on_click=create_and_continue)
+        with tk_packed_frame(default_side='left'):
+            tk_button(text='Create', on_click=create)
+            tk_button(text='Create+', on_click=create_and_continue)
 
 
 @functional_component
@@ -32,11 +33,11 @@ def todo_item(name, text, on_done):
     def done():
         on_done(name)
 
-    with TkPackedFrame(default_side='left', fill='x', anchor='n'):
-        TkButton(text='Done!', on_click=done, fill='y')
-        with TkPackedFrame(expand=True, fill='x'):
-            TkLabel(text=name, anchor='w')
-            TkLabel(text=text, anchor='w')
+    with tk_packed_frame(default_side='left', fill='x', anchor='n'):
+        tk_button(text='Done!', on_click=done, fill='y')
+        with tk_packed_frame(expand=True, fill='x'):
+            tk_label(text=name, anchor='w')
+            tk_label(text=text, anchor='w')
 
 
 INITIAL_LIST = OrderedDict({
@@ -69,7 +70,7 @@ def root():
             on_create=create
         )
 
-    TkButton(text='Add', on_click=toggle_create_open, disabled=create_open)
+    tk_button(text='Add', on_click=toggle_create_open, disabled=create_open)
 
     with tk_scrollable_frame(fill='both', expand=1):
         for name, text in items.items():

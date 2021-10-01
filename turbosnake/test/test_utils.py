@@ -17,7 +17,8 @@ class EventPropInvokerTest(TestCase):
 
         self.assertTrue(callable(fn))
 
-        fn()
+        with self.assertRaises(KeyError):
+            fn()
 
     def test_invoke_prop(self):
         fn = event_prop_invoker(self.target, 'on_event')

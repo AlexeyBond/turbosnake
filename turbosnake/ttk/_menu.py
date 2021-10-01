@@ -1,10 +1,11 @@
 import tkinter as tk
 from abc import abstractmethod, ABCMeta, ABC
 from collections import Iterable
+from typing import Optional, Callable, Any
 
 from ._adapters import TkRadioGroup
 from ._core import TkComponent
-from .. import Component, Wrapper, event_prop_invoker
+from .. import Component, Wrapper, event_prop_invoker, component, noop_handler
 
 """
 _menu.py
@@ -103,14 +104,31 @@ class TkMenu(_TkMenuComponent, Wrapper, TkComponent):
             self.__enqueue_layout()
 
 
+@component(TkMenu)
+def tk_menu(
+        *,
+        label: str,
+        title: Optional[str],
+        disabled: bool = False,
+        tearoff: int = 0,
+        **_):
+    ...
+
+
 class TkWindowMenu(TkMenu):
     """Menu that automatically attaches to containing window when mounted."""
+
     def mount(self, parent):
         super().mount(parent)
 
         self.get_window().widget.configure(
             menu=self.widget
         )
+
+
+@component(TkWindowMenu)
+def tk_window_menu(**_):
+    ...
 
 
 class _TkMenuItemComponent(_TkMenuComponent, Component, ABC):
@@ -148,9 +166,24 @@ class TkMenuCommand(_TkMenuItemComponent):
         )
 
 
+@component(TkMenuCommand)
+def tk_menu_command(
+        *,
+        label: str,
+        disabled: bool = False,
+        on_click: Callable = noop_handler,
+        **_):
+    ...
+
+
 class TkMenuSeparator(_TkMenuItemComponent):
     def add_to_menu(self, menu: tk.Menu):
         menu.add_separator()
+
+
+@component(TkMenuSeparator)
+def tk_menu_separator(**_):
+    ...
 
 
 class TkMenuCheckbutton(_TkMenuItemComponent):
@@ -158,7 +191,7 @@ class TkMenuCheckbutton(_TkMenuItemComponent):
         super().mount(parent)
 
         self.__var = tk.Variable(
-            value=self.props.get('initial_value', False)
+            value=self.props['initial_value']
         )
 
     def unmount(self):
@@ -167,22 +200,30 @@ class TkMenuCheckbutton(_TkMenuItemComponent):
         del self.__var
 
     def __command(self, *_):
-        try:
-            on_change = self.props['on_change']
-        except KeyError:
-            return
-
-        on_change(self.__var.get())
+        self.props['on_change'](self.__var.get())
 
     def add_to_menu(self, menu: tk.Menu):
         props = self.props
         menu.add_checkbutton(
             variable=self.__var,
-            onvalue=props.get('on_value', True),
-            offvalue=props.get('off_value', False),
+            onvalue=props['on_value'],
+            offvalue=props['off_value'],
             command=self.__command,
             **self.get_menu_item_config(),
         )
+
+
+@component(TkMenuCheckbutton)
+def tk_menu_checkbutton(
+        *,
+        on_change: Callable = noop_handler,
+        label: str,
+        disabled: bool = False,
+        initial_value: Any = False,
+        on_value: Any = True,
+        off_value: Any = False,
+        **_):
+    ...
 
 
 class TkMenuRadioButton(_TkMenuItemComponent):
@@ -198,11 +239,7 @@ class TkMenuRadioButton(_TkMenuItemComponent):
 
     def __command(self):
         self.__radio_group.on_selected(self.props['value'])
-        try:
-            cb = self.props['on_selected']
-        except KeyError:
-            return
-        cb()
+        self.props['on_selected']()
 
     def add_to_menu(self, menu: tk.Menu):
         menu.add_radiobutton(
@@ -211,3 +248,15 @@ class TkMenuRadioButton(_TkMenuItemComponent):
             command=self.__command,
             **self.get_menu_item_config(),
         )
+
+
+@component(TkMenuRadioButton)
+def tk_menu_radiobutton(
+        *,
+        value: Any,
+        label: str,
+        disabled: bool = False,
+        on_selected: Callable = noop_handler,
+        group_name: Optional[str] = None,
+        **_):
+    ...
