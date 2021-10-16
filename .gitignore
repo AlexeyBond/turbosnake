@@ -1,3 +1,5 @@
 dist
 *.egg-info
 .idea
+*,cover
+.coverage

@@ -247,9 +247,9 @@ class ComponentsCollection(list):
 
         return True
 
-    def __call__(self):
+    def __call__(self, key=None):
         """Creates and inserts a `Fragment` containing all components from this collection."""
-        return fragment(children=self)
+        return fragment(children=self, key=key)
 
     EMPTY: 'ComponentsCollection' = None
 

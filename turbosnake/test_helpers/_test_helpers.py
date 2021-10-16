@@ -65,6 +65,14 @@ class TreeTestCase(SnapshotTestCase):
         SnapshotTestCase.setUp(self)
         self.tree = TestTree()
 
+    def render(self, component, **props):
+        with self.tree:
+            component(**props)
+
+        self.tree.run_tasks()
+
+        return self.tree.root
+
     def assertTreeMatchesSnapshot(self, run_tasks=True, **kwargs):
         if run_tasks:
             self.tree.run_tasks()

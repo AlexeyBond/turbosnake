@@ -3,14 +3,6 @@ from turbosnake.test_helpers import TreeTestCase
 
 
 class FunctionalComponentTest(TreeTestCase):
-    def render(self, component, **props):
-        with self.tree:
-            component(**props)
-
-        self.tree.run_tasks()
-
-        return self.tree.root
-
     def test_create_component_class(self):
         @functional_component()
         def component(**props):
