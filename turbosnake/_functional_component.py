@@ -64,7 +64,7 @@ def functional_component(
         for k, v in statics.items():
             setattr(FunctionComponent, k, v)
 
-        return update_wrapper(component_inserter(FunctionComponent), fn)
+        return update_wrapper(component_inserter(FunctionComponent), FunctionComponent)
 
     if fn:
         return _create_functional_component(fn)

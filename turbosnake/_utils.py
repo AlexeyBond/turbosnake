@@ -1,5 +1,5 @@
 from functools import partial
-from inspect import signature, Parameter
+from inspect import signature, Parameter, isclass
 from typing import Type, Callable
 
 from ._components import Component, component_inserter
@@ -67,3 +67,18 @@ def component(component_class: Type[Component]):
     - provide default values for properties
     """
     return partial(_component_inserter_declaration, component_class)
+
+
+def get_component_class(class_or_inserter):
+    """Returns component class for provided component inserter function.
+
+    When component class is provided as first argument - returns it.
+    """
+    if isclass(class_or_inserter) and issubclass(class_or_inserter, Component):
+        return class_or_inserter
+    elif hasattr(class_or_inserter, '__wrapped__') and isclass(
+            class_or_inserter.__wrapped__) and issubclass(class_or_inserter.__wrapped__,
+                                                          Component):
+        return class_or_inserter.__wrapped__
+    else:
+        raise Exception('Provided argument is not a component class or inserter')

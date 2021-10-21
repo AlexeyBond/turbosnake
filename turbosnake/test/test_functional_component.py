@@ -31,6 +31,14 @@ class FunctionalComponentTest(TreeTestCase):
 
         self.assertTreeMatchesSnapshot()
 
+    def test_set__wrapped__(self):
+        @functional_component
+        def foo():
+            pass
+
+        self.assertTrue(hasattr(foo, '__wrapped__'))
+        self.assertTrue(issubclass(foo.__wrapped__, Component))
+
     def test_create_non_parent_by_default(self):
         @functional_component
         def component(**kwargs):

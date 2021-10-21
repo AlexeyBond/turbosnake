@@ -2,7 +2,7 @@ import queue
 from abc import abstractmethod, ABCMeta
 from collections import OrderedDict, Counter, Iterable
 from functools import wraps
-from typing import Optional
+from typing import Optional, Type
 
 from ._render_context import get_render_context, render_context_manager, enter_render_context
 
@@ -171,10 +171,11 @@ class Component:
     def set_state(self, key, value):
         try:
             cur = self.get_state(key)
-            if cur == value:
-                return
         except KeyError:
             pass  # ok, state isn't even initialized
+        else:
+            if cur == value:
+                return
         self.__state[key] = value
         self.enqueue_update()
 
@@ -432,7 +433,7 @@ class Wrapper(DynamicComponent, ParentComponent):
         return self.props.get('children', ComponentsCollection.EMPTY)
 
 
-def component_inserter(component_class):
+def component_inserter(component_class: Type[Component]):
     @wraps(component_class)
     def _component_inserter(**props):
         component: Component = component_class(**props)
@@ -444,11 +445,10 @@ def component_inserter(component_class):
 
 class Fragment(Wrapper):
     def update_props_from(self, other: 'Component') -> bool:
-        if other.props.get('children', None) != self.props.get('children', None):
-            self.props = other.props
-            return True
+        need_update = other.props.get('children', None) != self.props.get('children', None)
+        self.props = other.props
 
-        return False
+        return need_update
 
     def props_equal_to(self, other: 'Component') -> bool:
         return self.props.get('children', None) == other.props.get('children', None)
