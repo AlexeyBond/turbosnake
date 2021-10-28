@@ -104,6 +104,7 @@ def configure_window(
         resizable_h=None,
         min_height=1,
         min_width=1,
+        topmost=False,
         **_):
     widget.wm_title(title)
 
@@ -116,6 +117,8 @@ def configure_window(
         widget.wm_resizable(*resizable_tpl)
 
     widget.wm_minsize(min_width, min_height)
+
+    widget.attributes('-topmost', topmost)
 
 
 class TkTree(Tree, _PackContainerBase, TkBase):
@@ -132,6 +135,9 @@ class TkTree(Tree, _PackContainerBase, TkBase):
 
     def schedule_task(self, callback):
         self.__widget.after_idle(callback)
+
+    def schedule_delayed_task(self, delay, callback):
+        self.__widget.after(ms=delay, func=callback)
 
     @property
     def widget(self):

@@ -15,6 +15,10 @@ class TestTree(Tree):
     def schedule_task(self, callback):
         self.__callbacks.append(callback)
 
+    def schedule_delayed_task(self, delay, callback):
+        # TODO: Implement some way of testing delayed tasks
+        raise NotImplemented
+
     def run_tasks(self):
         ran_tasks = 0
 

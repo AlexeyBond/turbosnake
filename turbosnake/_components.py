@@ -64,6 +64,10 @@ class Tree(metaclass=ABCMeta):
     def schedule_task(self, callback):
         ...
 
+    @abstractmethod
+    def schedule_delayed_task(self, delay, callback):
+        ...
+
     def handle_error(self, error, queue_name, task):
         raise error
 
