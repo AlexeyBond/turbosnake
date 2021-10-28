@@ -1,7 +1,9 @@
 from typing import Callable
 
-from turbosnake.tools import run_preview
+from turbosnake.tools import run_preview, preview_component as preview_component_
 from turbosnake.ttk import TkTree
+
+preview_component = preview_component_
 
 
 def tk_run_preview(
