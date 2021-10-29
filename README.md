@@ -128,3 +128,15 @@ library or even for purposes different from user interface rendering.
 
 Package `turbosnake.ttk` provides adapters for tkinter (mostly ttk) UI components. For examples
 see [TODO-list application example](https://github.com/AlexeyBond/turbosnake/blob/master/examples/todo.py).
+
+### Live preview
+
+Composite turbosnake UI components are not meant to be edited using any sort of visual editor. But, in order to make it
+easier to create, modify and debug complex layouts turbosnake provides live preview tool. It is inspired by React's
+Storybook. The tool tracks changes in component file and renders the most recent version in a window.
+
+Current version of preview tool tracks changes only in the preview file itself. Tracking of changes in dependencies may
+be added later.
+
+See [preview_example.py](https://github.com/AlexeyBond/turbosnake/blob/master/examples/preview_example.py) for example
+of preview tool use.
