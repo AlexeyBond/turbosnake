@@ -1,5 +1,6 @@
-from ._components import Tree, Component, Ref, ComponentsCollection, ParentComponent, DynamicComponent, Wrapper, \
-    ComponentNotFoundError, fragment, component_inserter
+from ._components import Tree, Component, Ref, ComponentsCollection, MutableComponentsCollection, \
+    ImmutableComponentsCollection, ParentComponent, DynamicComponent, Wrapper, ComponentNotFoundError, fragment, \
+    component_inserter
 from ._context import Context, ContextNotProvidedError, ContextProvider, use_context
 from ._functional_component import functional_component
 from ._hooks import ComponentWithHooks, Hook

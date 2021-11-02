@@ -6,6 +6,7 @@ from collections import Generator
 from typing import Optional
 
 from turbosnake import Component, Tree
+from turbosnake.ttk._layout import get_layout_manager_class, DEFAULT_LAYOUT_MANAGER, LayoutManagerABC
 
 """
 _core.py
@@ -43,51 +44,39 @@ class TkBase(metaclass=ABCMeta):
         ...
 
 
-class _PackContainerBase(TkBase, ABC):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.__repack_enqueued = False
-
-    @property
-    @abstractmethod
-    def layout_props(self):
-        ...
-
-    def pack_child(self, child: 'TkComponent'):
-        p = self.layout_props
-        cp = child.props
-        child.widget.pack(
-            side=cp.get('side', p.get('default_side', 'top')),
-            padx=cp.get('px', 0),
-            pady=cp.get('py', 0),
-            expand=cp.get('expand', False),
-            fill=cp.get('fill', None),
-            anchor=cp.get('anchor', None)
+class TkContainerBase(TkBase, ABC):
+    def init_container(self, layout_manager=DEFAULT_LAYOUT_MANAGER, **kwargs):
+        self._layout_manager: LayoutManagerABC = get_layout_manager_class(layout_manager)(
+            container=self,
+            settings=kwargs
         )
 
-    def __repack_children(self):
-        for child in self.get_tk_children():
-            child.widget.pack_forget()
-            self.pack_child(child)
-        self.__repack_enqueued = False
+    def update_container_settings(self, layout_manager=DEFAULT_LAYOUT_MANAGER, **kwargs):
+        lm_class = get_layout_manager_class(layout_manager)
 
-    def schedule_repack(self):
-        if not self.__repack_enqueued:
-            self.__repack_enqueued = True
-            self.tree.enqueue_task('layout', self.__repack_children)
+        if self._layout_manager.__class__ is not lm_class:
+            self._layout_manager.on_terminated()
+            self._layout_manager = new_lm = lm_class(container=self, settings=kwargs)
+            for child in self.get_tk_children():
+                new_lm.on_child_added(child)
+        else:
+            self._layout_manager.on_update_settings(kwargs)
+
+    def destroy_container(self):
+        self._layout_manager.on_terminated()
+        del self._layout_manager
 
     def on_tk_child_mounted(self, child):
-        if child.tk_ignore_subtree:
-            return
         super().on_tk_child_mounted(child)
-        self.schedule_repack()
+        self._layout_manager.on_child_added(child)
 
     def on_tk_child_updated(self, child):
-        if child.tk_ignore_subtree:
-            return
         super().on_tk_child_updated(child)
-        self.schedule_repack()
+        self._layout_manager.on_child_updated(child)
+
+    def on_tk_child_unmounted(self, child):
+        super().on_tk_child_unmounted(child)
+        self._layout_manager.on_child_removed(child)
 
 
 def _get_tk_children(component: Component):
@@ -121,7 +110,7 @@ def configure_window(
     widget.attributes('-topmost', topmost)
 
 
-class TkTree(Tree, _PackContainerBase, TkBase):
+class TkTree(Tree, TkContainerBase, TkBase):
     def get_window(self):
         return self
 
@@ -130,8 +119,7 @@ class TkTree(Tree, _PackContainerBase, TkBase):
 
         self.__widget = widget or tk.Tk()
         configure_window(self.__widget, **options)
-
-    layout_props = {}
+        self.init_container(**options)
 
     def schedule_task(self, callback):
         self.__widget.after_idle(callback)
@@ -210,8 +198,7 @@ class TkComponent(Component, TkBase):
 
         self.configure_widget(self.__widget)
 
-        # TODO:
-        # self.tk_parent.on_tk_child_updated(self)
+        self.tk_parent.on_tk_child_updated(self)
 
     @abstractmethod
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:

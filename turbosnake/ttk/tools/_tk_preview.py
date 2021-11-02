@@ -10,13 +10,15 @@ def tk_run_preview(
         module_name='__main__',
         topmost=True,
         min_width=200,
+        min_height=0,
 ):
     run_preview(
         module_name=module_name,
         manager_module_name=__name__,
         options={
             'topmost': topmost,
-            'min_width': min_width
+            'min_width': min_width,
+            'min_height': min_height,
         }
     )
 

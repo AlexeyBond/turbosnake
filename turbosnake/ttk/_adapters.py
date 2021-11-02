@@ -1,9 +1,11 @@
 import tkinter as tk
+from abc import ABC
 from tkinter import ttk
 from typing import Callable, Optional, Literal
 
 from turbosnake import Wrapper, Component, event_prop_invoker, component, noop_handler
-from turbosnake.ttk._core import _PackContainerBase, TkComponent, configure_window
+from turbosnake.ttk._core import TkContainerBase, TkComponent, configure_window
+from turbosnake.ttk._layout import LayoutManagerPropValue
 
 """
 _adapters.py
@@ -12,7 +14,21 @@ Contains turbosnake components that are adapters for tkinter/ttk widgets.
 """
 
 
-class TkWindow(_PackContainerBase, TkComponent, Wrapper):
+class TkContainerComponent(TkContainerBase, TkComponent, ABC):
+    def update(self):
+        super().update()
+        self.update_container_settings(**self.props)
+
+    def mount(self, parent):
+        super().mount(parent)
+        self.init_container(**self.props)
+
+    def unmount(self):
+        super().unmount()
+        self.destroy_container()
+
+
+class TkWindow(TkContainerComponent, TkComponent, Wrapper):
     @property
     def layout_props(self):
         return self.props
@@ -53,32 +69,55 @@ def tk_window(
         resizable_h: Optional[int] = None,
         min_height: int = 1,
         min_width: int = 1,
+        layout_manager: LayoutManagerPropValue = 'pack',
         **_):
     ...
 
 
-class TkPackedFrame(_PackContainerBase, TkComponent, Wrapper):
-    @property
-    def layout_props(self):
-        return self.props
-
+class TkFrame(TkContainerComponent, TkComponent, Wrapper):
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
         return ttk.Frame(tk_parent)
 
     def get_widget_config(self, **props):
         return super().get_widget_config(**props)
 
-    def update(self):
-        super().update()
 
-        # TODO: Repack iff own layout props changed
-        self.schedule_repack()
+@component(TkFrame)
+def tk_frame(
+        *,
+        layout_manager: LayoutManagerPropValue = 'pack',
+        **_):
+    ...
 
 
-@component(TkPackedFrame)
+@component(TkFrame)
 def tk_packed_frame(
         *,
+        layout_manager: Literal['pack'] = 'pack',
         default_side: Literal['top', 'bottom', 'left', 'right'] = 'top',
+        **_):
+    ...
+
+
+@component(TkFrame)
+def tk_place_frame(
+        *,
+        layout_manager: Literal['place'] = 'place',
+        default_anchor='NW',
+        **_):
+    ...
+
+
+@component(TkFrame)
+def tk_grid_frame(
+        *,
+        layout_manager: Literal['grid'] = 'grid',
+        row_weights: tuple[int, ...] = (),
+        row_min_sizes: tuple[int, ...] = (),
+        row_pads: tuple[int, ...] = (),
+        column_weights: tuple[int, ...] = (),
+        column_min_sizes: tuple[int, ...] = (),
+        column_pads: tuple[int, ...] = (),
         **_):
     ...
 
@@ -181,7 +220,7 @@ def tk_scrollbar(
     ...
 
 
-class TkCanvas(_PackContainerBase, TkComponent, Wrapper):
+class TkCanvas(TkContainerComponent, TkComponent, Wrapper):
     @property
     def layout_props(self):
         return self.props

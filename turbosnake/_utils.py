@@ -1,6 +1,6 @@
 from functools import partial
 from inspect import signature, Parameter, isclass
-from typing import Type, Callable
+from typing import Type, Callable, Union
 
 from ._components import Component, component_inserter
 
@@ -69,7 +69,7 @@ def component(component_class: Type[Component]):
     return partial(_component_inserter_declaration, component_class)
 
 
-def get_component_class(class_or_inserter):
+def get_component_class(class_or_inserter: Union[Callable, Type[Component]]):
     """Returns component class for provided component inserter function.
 
     When component class is provided as first argument - returns it.

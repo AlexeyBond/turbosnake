@@ -5,6 +5,7 @@ from functools import wraps
 from typing import Optional, Type
 
 from ._render_context import get_render_context, render_context_manager, enter_render_context
+from ._utils0 import have_differences_by_keys
 
 
 class Ref:
@@ -235,8 +236,14 @@ class Component:
         if ref:
             ref.current = self
 
+    def has_props_changed(self, prop_names: Iterable[str]) -> bool:
+        """Returns True iff value of any of properties listed in `prop_names` was changed during the most recent update.
+        """
+        return have_differences_by_keys(self.prev_props, self.props, prop_names)
 
-class ComponentsCollection(list):
+
+class ComponentsCollection(metaclass=ABCMeta):
+    # noinspection PyTypeChecker
     def __eq__(self, other):
         if not other or not isinstance(other, ComponentsCollection):
             return False
@@ -259,8 +266,15 @@ class ComponentsCollection(list):
     EMPTY: 'ComponentsCollection' = None
 
 
-# TODO: Make immutable
-ComponentsCollection.EMPTY = ComponentsCollection()
+class MutableComponentsCollection(ComponentsCollection, list):
+    ...
+
+
+class ImmutableComponentsCollection(ComponentsCollection, tuple):
+    ...
+
+
+ComponentsCollection.EMPTY = ImmutableComponentsCollection()
 
 
 class ComponentRenderingContext:
@@ -275,7 +289,7 @@ class ComponentRenderingContext:
 
 class ComponentCollectionBuilder(ComponentRenderingContext):
     def __init__(self):
-        self.__collection = ComponentsCollection()
+        self.__collection = MutableComponentsCollection()
         self.__incremental_key = Counter()
 
     def append(self, component):

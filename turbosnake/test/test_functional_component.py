@@ -51,7 +51,7 @@ class FunctionalComponentTest(TreeTestCase):
         def component(children):
             pass
 
-        self.assertTrue(isinstance(self.render(component, children=ComponentsCollection()), ParentComponent))
+        self.assertTrue(isinstance(self.render(component, children=ComponentsCollection.EMPTY), ParentComponent))
 
     def test_create_non_parent_when_explicitly_forbidden(self):
         @functional_component(children=False)

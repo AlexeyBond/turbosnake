@@ -1,5 +1,5 @@
-from ._adapters import tk_packed_frame, tk_label, tk_button, tk_window, tk_entry, tk_scrollbar, tk_canvas, \
-    tk_radio_group
+from ._adapters import tk_label, tk_button, tk_window, tk_entry, tk_scrollbar, tk_canvas, tk_radio_group, tk_frame, \
+    tk_packed_frame, tk_place_frame, tk_grid_frame
 from ._adapters import tk_window
 from ._composite import tk_scrollable_frame
 from ._core import TkComponent, TkTree
