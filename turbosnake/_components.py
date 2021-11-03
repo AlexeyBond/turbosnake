@@ -2,7 +2,7 @@ import queue
 from abc import abstractmethod, ABCMeta
 from collections import OrderedDict, Counter, Iterable
 from functools import wraps
-from typing import Optional, Type
+from typing import Optional, Type, Union, Callable
 
 from ._render_context import get_render_context, render_context_manager, enter_render_context
 from ._utils0 import have_differences_by_keys
@@ -14,6 +14,10 @@ class Ref:
 
 
 class Tree(metaclass=ABCMeta):
+    """Root node of a turbosnake tree.
+
+    See ../doc/Tree.md for more details.
+    """
     TASK_QUEUES = ('update', 'effect')
 
     def __init__(self, queues=TASK_QUEUES):
@@ -27,6 +31,9 @@ class Tree(metaclass=ABCMeta):
         self.__root: Optional[Component] = None
 
     def enqueue_task(self, queue_name, task):
+        """Enqueue task for execution on given queue."""
+        assert queue_name in self.__queue_names, 'Wrong queue name'
+
         self.__queues[queue_name].put(task)
 
         if not self.__task_processing_scheduled:
@@ -62,22 +69,40 @@ class Tree(metaclass=ABCMeta):
                 return
 
     @abstractmethod
-    def schedule_task(self, callback):
+    def schedule_task(self, callback: Callable):
+        """Schedule task for immediate execution on event loop.
+
+        This method must be implemented by Tree subclasses as it is used by task management system.
+
+        However, it usually shouldn't be used directly by anything else than base Tree implementation.
+        If you're using it, consider using `enqueue_task` instead.
+        """
         ...
 
     @abstractmethod
-    def schedule_delayed_task(self, delay, callback):
+    def schedule_delayed_task(self, delay: Union[int, float], callback: Callable) -> Callable:
+        """Schedule task for delayed execution.
+
+        :param delay: delay in milliseconds from now
+        :param callback: the callback to execute
+        :returns: callable that cancels task execution when called
+        """
         ...
 
     def handle_error(self, error, queue_name, task):
+        """Called when an error is raised in any of tasks executed as result of `enqueue_task` call."""
         raise error
 
     @property
-    def tree(self):
+    def tree(self) -> 'Tree':
         return self
 
     @property
-    def root(self):
+    def root(self) -> 'Component':
+        """Root component of this tree.
+
+        May be `None` if a tree root is not initialized or error happen during root replacement.
+        """
         return self.__root
 
     def __enter__(self):
@@ -115,6 +140,7 @@ class Component:
         self.ref = ref
 
     def insert(self, context: 'ComponentRenderingContext' = None):
+        """Inserts this component into current rendering context."""
         assert not self.is_mounted(), 'Attempt to render a mounted component'
 
         if not context:
@@ -125,6 +151,10 @@ class Component:
         context.append(self)
 
     def mount(self, parent):
+        """Called when this component is being mounted to a tree.
+
+        :param parent: parent of this component
+        """
         assert not self.is_mounted(), 'Attempt to mount a mounted component'
 
         self.parent: Component = parent
@@ -136,6 +166,7 @@ class Component:
         self.enqueue_update()
 
     def unmount(self):
+        """Called when this component is being unmounted from tree."""
         del self.parent
         del self.__tree
 
@@ -157,6 +188,10 @@ class Component:
         return True
 
     def props_equal_to(self, other: 'Component') -> bool:
+        """Returns `True` iff props of this component are equal to props of another one.
+
+        This method may ignore some properties that are not used by this component.
+        """
         return other.props == self.props
 
     def update(self):
@@ -164,9 +199,17 @@ class Component:
         self.prev_props = self.props
 
     def get_state(self, key):
+        """Get state element.
+
+        :raises KeyError: if such element is not present in component's state
+        """
         return self.__state[key]
 
     def get_state_or_init(self, key, default):
+        """Get state element or set to given default value if not present
+
+        Doesn't request update when sets state to default value.
+        """
         try:
             return self.__state[key]
         except KeyError:
@@ -174,6 +217,7 @@ class Component:
             return default
 
     def set_state(self, key, value):
+        """Set state element and request update if new value is different from previous one."""
         try:
             cur = self.get_state(key)
         except KeyError:
@@ -193,7 +237,7 @@ class Component:
         """Iterator over all mounted children of this component"""
         yield from ()
 
-    def first_matching_descendants(self, predicate):
+    def first_matching_descendants(self, predicate) -> Iterable['Component']:
         """Iterator over all descendants of this component that match given predicate but don't have any other such
         components between them and this component.
         """
@@ -203,7 +247,8 @@ class Component:
             else:
                 yield from child.first_matching_descendants(predicate)
 
-    def ascendants(self):
+    def ascendants(self) -> Iterable['Component']:
+        """Iterator over all ascendants of this component"""
         asc = self.parent
         tree = self.__tree
 
@@ -213,7 +258,11 @@ class Component:
 
         yield asc
 
-    def first_matching_ascendant(self, predicate):
+    def first_matching_ascendant(self, predicate) -> 'Component':
+        """Returns closest ascendant of this component that matches given predicate.
+
+        :raises ComponentNotFoundError: when there is no such ascendant
+        """
         for asc in self.ascendants():
             if predicate(asc):
                 return asc
@@ -221,13 +270,15 @@ class Component:
         raise ComponentNotFoundError()
 
     @property
-    def tree(self):
+    def tree(self) -> Tree:
+        """The Tree this component is mounted to"""
         return self.__tree
 
     def class_id(self):
         return self.__class__
 
     def is_mounted(self):
+        """Returns `True` iff this component is mounted to a tree"""
         # TODO: Not the most reliable (?) way to check if a protected attribute exists.
         return hasattr(self, '_Component__tree')
 
@@ -243,6 +294,15 @@ class Component:
 
 
 class ComponentsCollection(metaclass=ABCMeta):
+    """Base class for collection of components.
+
+    Instances of this class are usually passed as `children` or slot properties to components.
+
+    The main difference between plain list/tuple and ComponentsCollection is specialized equality operator that compares
+    component properties properly.
+    But also it provides a `()` operator that inserts all components from collection into current rendering context.
+    """
+
     # noinspection PyTypeChecker
     def __eq__(self, other):
         if not other or not isinstance(other, ComponentsCollection):
@@ -254,23 +314,28 @@ class ComponentsCollection(metaclass=ABCMeta):
         i2 = iter(other)
 
         for component in self:
-            if not component.props_equal_to(next(i2)):
+            other_component = next(i2)
+            if component.key != other_component.key:
+                return False
+            if component.ref is not other_component.ref:
+                return False
+            if not component.props_equal_to(other_component):
                 return False
 
         return True
 
-    def __call__(self, key=None):
+    def __call__(self, /, key=None):
         """Creates and inserts a `Fragment` containing all components from this collection."""
         return fragment(children=self, key=key)
 
     EMPTY: 'ComponentsCollection' = None
 
 
-class MutableComponentsCollection(ComponentsCollection, list):
+class MutableComponentsCollection(ComponentsCollection, list[Component]):
     ...
 
 
-class ImmutableComponentsCollection(ComponentsCollection, tuple):
+class ImmutableComponentsCollection(ComponentsCollection, tuple[Component, ...]):
     ...
 
 

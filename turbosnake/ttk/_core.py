@@ -125,7 +125,8 @@ class TkTree(Tree, TkContainerBase, TkBase):
         self.__widget.after_idle(callback)
 
     def schedule_delayed_task(self, delay, callback):
-        self.__widget.after(ms=delay, func=callback)
+        cancel_id = self.__widget.after(ms=delay, func=callback)
+        return lambda: self.__widget.after_cancel(cancel_id)
 
     @property
     def widget(self):
