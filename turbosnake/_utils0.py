@@ -1,3 +1,5 @@
+import random
+import string
 from typing import Iterable
 
 
@@ -19,3 +21,18 @@ def have_differences_by_keys(dict1: dict, dict2: dict, keys: Iterable):
                     return True
 
     return False
+
+
+def random_id(
+        length=10,
+        first_character_choices=string.ascii_lowercase,
+        rest_character_choices=string.ascii_lowercase + string.digits
+):
+    """Generates a random id string."""
+
+    assert length >= 1
+
+    return ''.join((
+        random.choice(first_character_choices),
+        *random.choices(rest_character_choices, k=length - 1)
+    ))

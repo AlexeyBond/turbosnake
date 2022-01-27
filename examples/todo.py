@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 from turbosnake import functional_component, use_ref, use_toggle, use_state, use_callback_proxy
 from turbosnake.ttk import tk_app
-from turbosnake.ttk import tk_entry, tk_button, tk_window, tk_label, tk_packed_frame, tk_scrollable_frame
+from turbosnake.ttk import tk_entry, tk_button, tk_window, tk_label, tk_packed_frame, tk_scrollable_frame, tk_link
 
 
 @functional_component
@@ -75,6 +75,13 @@ def root():
     with tk_scrollable_frame(fill='both', expand=1):
         for name, text in items.items():
             todo_item(key=name, text=text, name=name, on_done=done)
+
+    with tk_packed_frame(default_side='left'):
+        tk_label(text='Achieved with')
+        tk_link(
+            text='turbosnake',
+            href='https://github.com/AlexeyBond/turbosnake'
+        )
 
 
 if __name__ == '__main__':

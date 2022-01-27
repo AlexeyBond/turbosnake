@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 
-from turbosnake import use_ref, functional_component, ComponentsCollection, use_effect
-from ._adapters import tk_packed_frame, tk_canvas, tk_scrollbar
+from turbosnake import use_ref, functional_component, ComponentsCollection, use_effect, use_callback_proxy
+from ._adapters import tk_packed_frame, tk_canvas, tk_scrollbar, tk_button
+from ._style import style
 
 """
 _composite.py
@@ -82,3 +83,39 @@ def tk_scrollable_frame(
             with tk_packed_frame(ref=interior_ref):
                 children()
         tk_scrollbar(orientation='vertical', fill='y', side='right', expand=0, ref=scrollbar_ref)
+
+
+@style(name_prefix='Link')
+def _link_style(s):
+    s.base_class = 'TLabel'
+    s['foreground', 'active'] = '#167eb1'
+    s['foreground', 'disabled'] = 'gray'
+    s['foreground'] = '#2e00fd'
+
+
+@functional_component
+def tk_link(
+        *,
+        text,
+        href,
+        cursor='hand2',
+        disabled_cursor='pirate',  # because why not?
+        disabled=False,
+        **props
+):
+    """A link. Yes, just like in web.
+    """
+
+    @use_callback_proxy
+    def on_click(*_):
+        import webbrowser
+        webbrowser.open(href)
+
+    tk_button(
+        on_click=on_click,
+        text=text,
+        cursor=disabled_cursor if disabled else cursor,
+        style=_link_style,
+        disabled=disabled,
+        **props
+    )

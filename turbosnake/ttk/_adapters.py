@@ -6,6 +6,7 @@ from typing import Callable, Optional, Literal
 from turbosnake import Wrapper, Component, event_prop_invoker, component, noop_handler
 from turbosnake.ttk._core import TkContainerBase, TkComponent, configure_window
 from turbosnake.ttk._layout import LayoutManagerPropValue
+from turbosnake.ttk._style import StyledTkComponent
 
 """
 _adapters.py
@@ -74,7 +75,7 @@ def tk_window(
     ...
 
 
-class TkFrame(TkContainerComponent, TkComponent, Wrapper):
+class TkFrame(StyledTkComponent, TkContainerComponent, TkComponent, Wrapper):
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
         return ttk.Frame(tk_parent)
 
@@ -122,18 +123,19 @@ def tk_grid_frame(
     ...
 
 
-class TkButton(TkComponent):
+class TkButton(StyledTkComponent, TkComponent):
     def create_widget(self, tk_parent):
         return ttk.Button(
             tk_parent,
             command=event_prop_invoker(self, 'on_click')
         )
 
-    def get_widget_config(self, text, disabled, **props):
+    def get_widget_config(self, text, disabled, cursor=None, **props):
         cfg = super().get_widget_config(**props)
 
         cfg['text'] = text
         cfg['state'] = 'disabled' if disabled else 'normal'
+        cfg['cursor'] = cursor
 
         return cfg
 
@@ -148,7 +150,7 @@ def tk_button(
     ...
 
 
-class TkLabel(TkComponent):
+class TkLabel(StyledTkComponent, TkComponent):
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
         return ttk.Label(tk_parent)
 
@@ -168,7 +170,7 @@ def tk_label(
     ...
 
 
-class TkEntry(TkComponent):
+class TkEntry(StyledTkComponent, TkComponent):
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
         widget = ttk.Entry(tk_parent)
         widget.insert(0, self.props['initial_value'])
@@ -193,7 +195,7 @@ def tk_entry(
     ...
 
 
-class TkScrollbar(TkComponent):
+class TkScrollbar(StyledTkComponent, TkComponent):
     def create_widget(self, tk_parent: tk.BaseWidget) -> tk.BaseWidget:
         scrollbar = ttk.Scrollbar(tk_parent)
 

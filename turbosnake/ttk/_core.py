@@ -3,6 +3,7 @@ import tkinter as tk
 import traceback
 from abc import abstractmethod, ABCMeta, ABC
 from collections import Generator
+from tkinter.ttk import Style
 from typing import Optional
 
 from turbosnake import Component, Tree
@@ -121,6 +122,8 @@ class TkTree(Tree, TkContainerBase, TkBase):
         configure_window(self.__widget, **options)
         self.init_container(**options)
 
+        self.__style_db = Style(self.__widget)
+
     def schedule_task(self, callback):
         self.__widget.after_idle(callback)
 
@@ -131,6 +134,10 @@ class TkTree(Tree, TkContainerBase, TkBase):
     @property
     def widget(self):
         return self.__widget
+
+    @property
+    def style_db(self) -> Style:
+        return self.__style_db
 
     def handle_error(self, error, queue_name, task):
         traceback.print_exc()
@@ -153,6 +160,11 @@ class TkComponent(Component, TkBase):
     @property
     def widget(self) -> tk.Widget:
         return self.__widget
+
+    @property
+    def tree(self) -> TkTree:
+        # noinspection PyTypeChecker
+        return super().tree
 
     def mount(self, parent):
         assert isinstance(parent.tree, TkTree), "TkComponent's can be mounted under TkTree only"
@@ -187,9 +199,9 @@ class TkComponent(Component, TkBase):
             self.__widget.destroy()
 
         widget = self.create_widget(self.tk_parent.widget)
-        self.configure_widget(widget)
-
         self.__widget = widget
+
+        self.configure_widget(widget)
 
     def configure_widget(self, widget):
         widget.config(**self.get_widget_config(**self.props))
