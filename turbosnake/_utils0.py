@@ -36,3 +36,17 @@ def random_id(
         random.choice(first_character_choices),
         *random.choices(rest_character_choices, k=length - 1)
     ))
+
+
+class RandomIdSet:
+    def __init__(self, **settings):
+        self._settings = settings
+        self._used = set()
+
+    def generate(self):
+        while True:
+            i = random_id(**self._settings)
+            if i in self._used:
+                continue
+            self._used.add(i)
+            return i

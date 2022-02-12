@@ -1,8 +1,9 @@
+import inspect
 from abc import abstractmethod, ABC, ABCMeta
 from tkinter.ttk import Style as TtkStyle
 from typing import Union, Iterable, Optional, Callable
 
-from turbosnake._utils0 import random_id
+from turbosnake._utils0 import RandomIdSet
 from turbosnake.ttk._core import TkComponent
 
 
@@ -145,6 +146,9 @@ class StyleBuilder:
         style_db.map(name, **self.__map)
 
 
+_global_style_id_set = RandomIdSet()
+
+
 class _StaticStyleInstance(StyleInstance):
     def __init__(self, _style: '_StaticStyle', component: TkComponent):
         self.__style = _style
@@ -152,7 +156,7 @@ class _StaticStyleInstance(StyleInstance):
         self.__name = _style.configure_for_component(component)
 
     @property
-    def style(self) -> 'Style':
+    def style(self) -> Style:
         return self.__style
 
     @property
@@ -174,11 +178,15 @@ class _StaticStyleInstance(StyleInstance):
 class _StaticStyle(Style):
     """A Style that does not depend on component properties.
     """
+    _used_style_ids = set()
 
     def __init__(self,
                  configuration_callbacks: list[Callable],
                  name_prefix: str,
                  ):
+        if not name_prefix:
+            name_prefix = _global_style_id_set.generate()
+
         if len(configuration_callbacks) == 1:
             self.apply = configuration_callbacks[0]
         else:
@@ -187,7 +195,7 @@ class _StaticStyle(Style):
         self.__name_prefix = name_prefix
 
         # Map from widget class to name of this style
-        # e.g. for StaticStyle with __name_prefix='Foo' and class 'TButton' there will be entry
+        # e.g. for _StaticStyle with __name_prefix='Foo' and class 'TButton' there will be entry
         # 'TButton': 'Foo.TButton'
         self.__style_names: dict[str, str] = {}
 
@@ -232,16 +240,131 @@ class _StaticStyle(Style):
             cb(builder, component)
 
 
-_used_style_ids = set()
+class _DynamicStyleInstance(StyleInstance):
+    def __init__(
+            self,
+            _style: '_DynamicStyle',
+            component: TkComponent,
+    ):
+        self.__style = _style
+        self.__component = component
+        self.__base_class = None
+        self.__name = None
+
+        self.update(component)
+
+    @property
+    def name(self) -> str:
+        return self.__name
+
+    @property
+    def style(self) -> 'Style':
+        return self.__style
+
+    def update(self, component: TkComponent):
+        builder = StyleBuilder(base_class=component.widget.winfo_class())
+        self.__style.apply(builder, component)
+        base_class = builder.base_class
+
+        if not self.__name:
+            self.__name = self.__style.acquire_name(base_class)
+            self.__base_class = base_class
+        elif self.__base_class != base_class:
+            self.__style.release_name(self.__base_class, self.__name)
+            self.__name = self.__style.acquire_name(base_class)
+            self.__base_class = base_class
+
+        builder.apply(
+            component.tree.style_db,
+            self.__name
+        )
+
+    def release(self):
+        self.__style.release_name(self.__base_class, self.__name)
 
 
-def _normalize_style_callback(cb):
-    # TODO: Do some magic - recognize callbacks that require dynamic component access, etc...
-    # TODO: Recognize already-normalized callbacks
-    def normalized_callback(builder: StyleBuilder, component: TkComponent):
-        cb(builder)
+class _DynamicStyle(Style):
+    def __init__(
+            self,
+            configuration_callbacks,
+            name_prefix,
+    ):
+        self.__callbacks = configuration_callbacks
+        self.__name_prefix = name_prefix
+        self.__style_id_set = RandomIdSet() if name_prefix else _global_style_id_set
+        self.__name_pool: dict[str, list[str]] = {}
 
-    return normalized_callback
+    def __generate_name(self, base_class):
+        if self.__name_prefix:
+            base_class = f'{self.__name_prefix}.{base_class}'
+
+        return f'{self.__style_id_set.generate()}.{base_class}'
+
+    def acquire_name(self, base_class):
+        try:
+            names: list[str] = self.__name_pool[base_class]
+        except KeyError:
+            return self.__generate_name(base_class)
+
+        try:
+            return names.pop()
+        except IndexError:
+            return self.__generate_name(base_class)
+
+    def release_name(self, base_class, name):
+        try:
+            names: list[str] = self.__name_pool[base_class]
+        except KeyError:
+            names = []
+            self.__name_pool[base_class] = names
+
+        names.append(name)
+
+    def instantiate(self, component: TkComponent) -> StyleInstance:
+        return _DynamicStyleInstance(self, component)
+
+    def apply(self, builder: 'StyleBuilder', component: TkComponent):
+        for cb in self.__callbacks:
+            cb(builder, component)
+
+    def __call__(self, callback):
+        return style(*self.__callbacks, callback, name_prefix=self.__name_prefix)
+
+
+_POSITIONAL_PARAM_KINDS = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+_KEYWORD_PARAM_KINDS = (
+    inspect.Parameter.KEYWORD_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.VAR_KEYWORD)
+
+
+def _normalize_style_callback(cb: Callable):
+    try:
+        if cb.__is_normalized_style_callback:
+            return cb, cb.__dynamic_component_access_required
+    except AttributeError:
+        pass
+
+    is_dynamic = False
+    signature = inspect.signature(cb)
+    parameters = (*signature.parameters.values(),)
+
+    if parameters[0].kind not in _POSITIONAL_PARAM_KINDS:
+        raise Exception('Illegal style function signature. At least one positional parameter is expected.')
+
+    if len(parameters) == 1:
+        def normalized_callback(builder: StyleBuilder, component: TkComponent):
+            cb(builder)
+    elif all(par.kind in _KEYWORD_PARAM_KINDS for par in parameters[1:]):
+        is_dynamic = True
+
+        def normalized_callback(builder: StyleBuilder, component: TkComponent):
+            cb(builder, **component.props)
+    else:
+        raise Exception('Illegal style function signature')
+
+    normalized_callback.__is_normalized_style_callback = True
+    normalized_callback.__dynamic_component_access_required = is_dynamic
+
+    return normalized_callback, is_dynamic
 
 
 def style(
@@ -251,21 +374,18 @@ def style(
     style_constructor = _StaticStyle
     callbacks = []
 
-    if not name_prefix:
-        while True:
-            name_prefix = random_id()
-            if name_prefix not in _used_style_ids:
-                break
-
-    _used_style_ids.add(name_prefix)
-
     for arg in args:
         if isinstance(arg, _StaticStyle):
             callbacks.append(arg.apply)
         elif isinstance(arg, Style):
-            raise NotImplementedError(f'Non-static styles are not implemented yet. Got: {repr(arg)}')
+            style_constructor = _DynamicStyle
+            callbacks.append(arg.apply)
         elif callable(arg):
-            callbacks.append(_normalize_style_callback(arg))
+            normalized, is_dynamic = _normalize_style_callback(arg)
+            callbacks.append(normalized)
+
+            if is_dynamic:
+                style_constructor = _DynamicStyle
         else:
             raise Exception(f'Unexpected style() argument: {repr(arg)}')
 
