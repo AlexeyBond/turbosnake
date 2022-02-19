@@ -1,3 +1,4 @@
+from ._async import use_async_call
 from ._components import Tree, Component, Ref, ComponentsCollection, MutableComponentsCollection, \
     ImmutableComponentsCollection, ParentComponent, DynamicComponent, Wrapper, ComponentNotFoundError, fragment, \
     component_inserter
