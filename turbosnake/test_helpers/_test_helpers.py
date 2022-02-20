@@ -1,3 +1,5 @@
+import asyncio
+
 from snapshottest import TestCase as SnapshotTestCase
 from snapshottest.formatter import Formatter
 from snapshottest.formatters import BaseFormatter as BaseSnapshotFormatter
@@ -11,6 +13,11 @@ class TestTree(Tree):
     def __init__(self):
         super().__init__()
         self.__callbacks = []
+
+    @property
+    def event_loop(self) -> asyncio.AbstractEventLoop:
+        # TODO: Implement this and test asynchronous operation hook(s)
+        raise NotImplemented
 
     def schedule_task(self, callback):
         self.__callbacks.append(callback)

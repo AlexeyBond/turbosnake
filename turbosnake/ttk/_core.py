@@ -1,12 +1,15 @@
+import asyncio
 import sys
 import tkinter as tk
 import traceback
 from abc import abstractmethod, ABCMeta, ABC
 from collections import Generator
+from functools import cache
 from tkinter.ttk import Style
 from typing import Optional
 
 from turbosnake import Component, Tree
+from turbosnake._utils0 import create_daemon_event_loop
 from turbosnake.ttk._layout import get_layout_manager_class, DEFAULT_LAYOUT_MANAGER, LayoutManagerABC
 
 """
@@ -115,7 +118,7 @@ class TkTree(Tree, TkContainerBase, TkBase):
     def get_window(self):
         return self
 
-    def __init__(self, widget=None, **options):
+    def __init__(self, widget=None, event_loop_factory=create_daemon_event_loop, **options):
         super().__init__(queues=(*super().TASK_QUEUES, 'layout', 'layout_effect'))
 
         self.__widget = widget or tk.Tk()
@@ -123,6 +126,13 @@ class TkTree(Tree, TkContainerBase, TkBase):
         self.init_container(**options)
 
         self.__style_db = Style(self.__widget)
+
+        self.__event_loop_factory = event_loop_factory
+
+    @property
+    @cache
+    def event_loop(self) -> asyncio.AbstractEventLoop:
+        return self.__event_loop_factory()
 
     def schedule_task(self, callback):
         self.__widget.after_idle(callback)

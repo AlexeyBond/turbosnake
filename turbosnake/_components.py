@@ -1,3 +1,4 @@
+import asyncio
 import queue
 from abc import abstractmethod, ABCMeta
 from collections import OrderedDict, Counter, Iterable
@@ -86,6 +87,23 @@ class Tree(metaclass=ABCMeta):
         :param delay: delay in milliseconds from now
         :param callback: the callback to execute
         :returns: callable that cancels task execution when called
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def event_loop(self) -> asyncio.AbstractEventLoop:
+        """The default event loop used to execute asynchronous operations in components of this tree.
+
+        Component updates may use the same event loop or run on different thread - in a different event loop or
+        even without using a standard event loop (so does tkinter tree work - tkinter event loop cannot be integrated
+        with asyncio event loop).
+        Whenever event loop returned here runs on the same thread as component updates or does it use a different thread
+        depends on tree implementation.
+        So users should not rely on any assumptions on this matter, unless they are sure that application code is going
+        to use a very specific tree implementation.
+
+        Note: It is not guaranteed that event loop returned here will keep running after the tree is terminated.
         """
         ...
 

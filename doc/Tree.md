@@ -42,7 +42,7 @@ Tree decides in which order tasks are executed depending on which queue they are
 Tasks are enqueued for execution using `enqueue_task` method:
 
 ```python
-from turbosnake import Tree, Component
+from turbosnake import Tree
 
 ...
 my_tree: Tree = ...
@@ -58,7 +58,7 @@ my_tree.enqueue_task('effect', my_task)
 The task can also be scheduled for delayed execution using `schedule_delayed_task`:
 
 ```python
-from turbosnake import Tree, Component
+from turbosnake import Tree
 
 ...
 my_tree: Tree = ...
@@ -70,6 +70,12 @@ def my_task():
 
 my_tree.schedule_delayed_task(1000, my_task)
 ```
+
+### Asyncio
+
+`Tree` also provides a default asyncio event loop which (in some implementations) may be used to run component updates
+or (in other implementations) run on a different thread. This event loop is used by `use_async_call` hook when no
+explicit event loop is specified.
 
 ## Testing
 

@@ -1,5 +1,7 @@
+import asyncio
 import random
 import string
+from threading import Thread
 from typing import Iterable
 
 
@@ -50,3 +52,11 @@ class RandomIdSet:
                 continue
             self._used.add(i)
             return i
+
+
+def create_daemon_event_loop():
+    loop = asyncio.new_event_loop()
+
+    Thread(target=loop.run_forever, daemon=True).start()
+
+    return loop

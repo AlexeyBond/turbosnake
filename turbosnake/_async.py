@@ -1,21 +1,10 @@
 import asyncio
 from abc import ABC, ABCMeta, abstractmethod
 from asyncio import InvalidStateError, Future
-from functools import cache
-from threading import Thread
 from typing import Optional
 
 from ._components import Component
 from ._hooks import Hook, use_function_hook
-
-
-@cache
-def get_default_event_loop():
-    loop = asyncio.new_event_loop()
-
-    Thread(target=loop.run_forever, daemon=True).start()
-
-    return loop
 
 
 # Timeout-based solutions for integration of asyncio with UI libraries like this one
@@ -104,7 +93,7 @@ class _AsyncCallHook(Hook, AsyncCallHookAPI):
         self.__callback = cb
 
         if not loop:
-            loop = get_default_event_loop()
+            loop = self.__component.tree.event_loop
 
         self.__loop: asyncio.AbstractEventLoop = loop
         return self
