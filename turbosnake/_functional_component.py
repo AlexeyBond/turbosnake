@@ -1,7 +1,6 @@
 import inspect
-from collections import Iterable
 from functools import update_wrapper
-from typing import Optional, Union
+from typing import Optional, Union, Iterable
 
 from ._components import Component, ParentComponent, DynamicComponent, component_inserter
 from ._hooks import ComponentWithHooks

@@ -1,5 +1,5 @@
 import tkinter as tk
-from collections import Iterable
+from typing import Mapping
 
 from turbosnake import event_prop_invoker
 from ._core import TkComponent, TkTree
@@ -28,7 +28,7 @@ def tk_app(widget=None, **options):
     return _App()
 
 
-def tk_with_events(event_map: Iterable[str, str]):
+def tk_with_events(event_map: Mapping[str, str]):
     """Decorator for tk-component that invokes event handlers from it's props when tk's events happen.
 
     @tk_with_events({

@@ -3,10 +3,9 @@ import sys
 import tkinter as tk
 import traceback
 from abc import abstractmethod, ABCMeta, ABC
-from collections import Generator
 from functools import cache
 from tkinter.ttk import Style
-from typing import Optional
+from typing import Optional, Generator
 
 from turbosnake import Component, Tree
 from turbosnake._utils0 import create_daemon_event_loop
@@ -44,7 +43,7 @@ class TkBase(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def get_tk_children(self) -> Generator['TkComponent']:
+    def get_tk_children(self) -> Generator['TkComponent', None, None]:
         ...
 
 
@@ -83,7 +82,7 @@ class TkContainerBase(TkBase, ABC):
         self._layout_manager.on_child_removed(child)
 
 
-def _get_tk_children(component: Component):
+def _get_tk_children(component: Component) -> Generator['TkComponent', None, None]:
     for child in component.first_matching_descendants(TkComponent.__instancecheck__):
         if not child.tk_ignore_subtree:
             yield child
@@ -201,7 +200,7 @@ class TkComponent(Component, TkBase):
     def get_tk_parent(self) -> TkBase:
         return self.first_matching_ascendant(TkBase.__instancecheck__)
 
-    def get_tk_children(self) -> Generator['TkComponent']:
+    def get_tk_children(self) -> Generator['TkComponent', None, None]:
         return _get_tk_children(self)
 
     def _create_and_configure_widget(self):

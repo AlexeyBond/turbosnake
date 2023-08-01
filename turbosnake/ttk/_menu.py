@@ -1,7 +1,6 @@
 import tkinter as tk
 from abc import abstractmethod, ABCMeta, ABC
-from collections import Iterable
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Iterable
 
 from ._adapters import TkRadioGroup
 from ._core import TkComponent
